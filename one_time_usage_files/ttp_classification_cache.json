@@ -1,0 +1,26 @@
+{
+    "T1140": {
+        "category": "Exploit",
+        "is_safe": false,
+        "safety_reason": "The command attempts to execute a code injection via base64 encoding which could be used in conjunction with further malicious scripts.",
+        "audit_notes": "This TTP is designed for obfuscating commands that manipulate system variables and data. The usage of 'echo' suggests it might write something suspicious into the environment, potentially leading to information leakage or other security compromises."
+    },
+    "T1555.003": {
+        "category": "Exploit",
+        "is_safe": false,
+        "safety_reason": "This command executes a script that attempts to dump passwords from the Firefox browser using LaZagne, which poses a high security risk by potentially exposing sensitive credentials.",
+        "audit_notes": "The provided TTP is an attempt to extract login information through unauthorized access and could lead to credential compromise. It does not directly interact with core system services or delete critical files but exposes users' passwords which can be used for further malicious activities."
+    },
+    "T1083": {
+        "category": "Behavioral",
+        "is_safe": false,
+        "safety_reason": "The commands involve unauthorized discovery of system information and potential privilege escalation.",
+        "audit_notes": "Command set involves listing files on the filesystem in various ways that could potentially reveal sensitive data or administrative pathways. It also attempts to find a way into using shell access, which if found by an attacker, can be used for further malicious activities."
+    },
+    "T1552.001": {
+        "category": "Behavioral",
+        "is_safe": false,
+        "safety_reason": "This command has the potential to bypass security controls if executed with elevated privileges.",
+        "audit_notes": "The provided MITRE TTP ID 'T1552.001' indicates a behavioral technique rather than an exploitation attempt per standard definitions, as it involves locating credentials on disk without directly compromising system integrity or leveraging known vulnerabilities."
+    }
+}

@@ -1,0 +1,74 @@
+<nav class="sticky top-4 z-50 mx-auto max-w-[90rem] glass rounded-[2rem] border border-white/10 mb-8">
+    <div class="px-6 h-20 flex items-center justify-between">
+        <!-- Logo & Brand -->
+        <div class="flex items-center gap-4 mr-8 lg:mr-24 shrink-0">
+            <img src="/static/just-logo.png" class="w-14 h-14 object-contain drop-shadow-[0_0_15px_rgba(56,189,248,0.4)]" alt="Beyond The Atomics Logo">
+            <div>
+                <h1 class="text-lg font-bold text-white leading-none">Beyond The Atomics</h1>
+                <p class="text-[10px] text-slate-500 uppercase tracking-widest font-black">Next-Gen Threat Emulation</p>
+            </div>
+        </div>
+
+        <!-- Desktop Links -->
+        <div class="hidden md:flex items-center space-x-8">
+            <a href="/" class="text-sm font-medium text-slate-400 hover:text-white transition-colors">Dashboard</a>
+            <a href="/assets" class="text-sm font-medium text-slate-400 hover:text-white transition-colors">Agents</a>
+            <a href="/scheduling" class="text-sm font-medium text-slate-400 hover:text-white transition-colors">Schedules</a>
+            <a href="/ttps" class="text-sm font-medium text-slate-400 hover:text-white transition-colors">TTP Library</a>
+            <a href="/apts" class="text-sm font-medium text-slate-400 hover:text-white transition-colors">Groups</a>
+            <a href="/scoreboard" class="text-sm font-medium text-slate-400 hover:text-white transition-colors">Scoreboard</a>
+            <a href="/report" class="text-sm font-medium text-slate-400 hover:text-white transition-colors">Reports</a>
+            <a href="/integrations" class="text-sm font-medium text-slate-400 hover:text-white transition-colors">Integrations</a>
+        </div>
+
+        <!-- User Actions -->
+        <div class="flex items-center gap-4">
+            {% if current_user.is_authenticated %}
+                <div class="h-8 w-[1px] bg-white/10 hidden md:block"></div>
+                <div class="flex items-center gap-3">
+                    <a href="/profile" class="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all" title="Profile">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </a>
+                    {% if current_user.role == 'admin' %}
+                    <a href="/admin/requests" class="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all" title="Admin Panel">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </a>
+                    {% endif %}
+                    <a href="/logout" class="p-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all" title="Logout">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    </a>
+                </div>
+            {% endif %}
+            
+            <!-- Theme Toggle -->
+            <button id="theme-toggle" class="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all ml-2" title="Toggle Theme">
+                <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            </button>
+            
+            <!-- Mobile Toggle -->
+            <button onclick="toggleMobileNav()" class="md:hidden p-2 text-slate-400 hover:text-white">
+                <i data-lucide="menu" id="menu-icon" class="w-6 h-6"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="hidden md:hidden bg-slate-900 border-t border-white/5 p-6 space-y-4">
+        <a href="/" class="block text-sm font-medium text-slate-400">Dashboard</a>
+        <a href="/assets" class="block text-sm font-medium text-slate-400">Agents</a>
+        <a href="/scheduling" class="block text-sm font-medium text-slate-400">Automation</a>
+        <a href="/ttps" class="block text-sm font-medium text-slate-400">TTP Library</a>
+        <a href="/apts" class="block text-sm font-medium text-slate-400">Threat Groups</a>
+        <a href="/scoreboard" class="block text-sm font-medium text-slate-400">Scoreboard</a>
+        <a href="/report" class="block text-sm font-medium text-slate-400">Reports</a>
+        <a href="/integrations" class="block text-sm font-medium text-slate-400">Integrations</a>
+    </div>
+</nav>
+
+<script>
+    function toggleMobileNav() {
+        const menu = document.getElementById('mobile-menu');
+        menu.classList.toggle('hidden');
+    }
+</script>

@@ -1,0 +1,139 @@
+/* Light Mode Theme Overrides */
+
+:root {
+    --bg-main: #020617;
+    --text-main: #e2e8f0;
+    --glass-bg: rgba(15, 23, 42, 0.75);
+    --glass-border: rgba(255, 255, 255, 0.08);
+}
+
+html.light-mode {
+    --bg-main: #f1f5f9; 
+    --text-main: #1e293b;
+    --glass-bg: rgba(255, 255, 255, 0.85);
+    --glass-border: rgba(255, 255, 255, 1);
+}
+
+/* Base Overrides */
+html.light-mode body {
+    background-color: var(--bg-main) !important;
+    color: var(--text-main) !important;
+}
+
+/* Reverted back to the blue gradients similar to dark mode, but with light background */
+html.light-mode .bg-overlay {
+    background:
+        radial-gradient(circle at 20% 30%, rgba(56, 189, 248, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(129, 140, 248, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 1) 0%, #f1f5f9 100%) !important;
+}
+
+html.light-mode .glass {
+    background: var(--glass-bg) !important;
+    border-color: var(--glass-border) !important;
+    box-shadow: 0 10px 30px 0 rgba(112, 144, 176, 0.15) !important;
+}
+
+/* Theme Toggle Icons - CSS purely handles the icon flash! */
+html:not(.light-mode) #theme-icon-sun { display: none !important; }
+html:not(.light-mode) #theme-icon-moon { display: block !important; }
+
+html.light-mode #theme-icon-sun { display: block !important; }
+html.light-mode #theme-icon-moon { display: none !important; }
+
+/* Backgrounds - Cards and Panels */
+html.light-mode .bg-slate-900 { background-color: #ffffff !important; box-shadow: 0 5px 20px rgba(112, 144, 176, 0.08) !important; }
+html.light-mode .bg-slate-900\/60 { background-color: rgba(255, 255, 255, 0.7) !important; }
+html.light-mode .bg-slate-900\/50,
+html.light-mode .bg-slate-800\/50,
+html.light-mode .bg-slate-900\/40,
+html.light-mode .bg-black\/30,
+html.light-mode .bg-black\/40,
+html.light-mode .bg-black\/50,
+html.light-mode .bg-black\/20 {
+    background-color: #ffffff !important;
+    box-shadow: 0 5px 20px rgba(112, 144, 176, 0.05) !important;
+}
+
+html.light-mode .bg-slate-700 { background-color: #e2e8f0 !important; color: #1e293b !important; }
+html.light-mode .bg-slate-800 { background-color: #e2e8f0 !important; color: #1e293b !important; }
+html.light-mode .bg-slate-800\/40 { background-color: rgba(226, 232, 240, 0.5) !important; }
+html.light-mode .hover\:bg-slate-600:hover { background-color: #cbd5e1 !important; color: #0f172a !important; }
+html.light-mode .bg-black { background-color: #ffffff !important; }
+
+/* Text Colors */
+html.light-mode .text-white { color: #0f172a !important; }
+html.light-mode .text-slate-200 { color: #1e293b !important; }
+html.light-mode .text-slate-300 { color: #334155 !important; }
+html.light-mode .text-slate-400 { color: #475569 !important; }
+html.light-mode .text-slate-500 { color: #64748b !important; }
+html.light-mode .text-slate-600 { color: #94a3b8 !important; }
+
+/* Input Fields Overrides - Make them pure white and clean */
+html.light-mode input[type="text"],
+html.light-mode input[type="password"],
+html.light-mode input[type="email"],
+html.light-mode input[type="number"],
+html.light-mode select {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border-color: rgba(112, 144, 176, 0.2) !important;
+    box-shadow: inset 0 2px 5px rgba(112, 144, 176, 0.03) !important;
+}
+html.light-mode input::placeholder {
+    color: #94a3b8 !important;
+}
+
+/* Borders & Dividers */
+html.light-mode .border-white\/5 { border-color: rgba(112, 144, 176, 0.1) !important; }
+html.light-mode .border-white\/10 { border-color: rgba(112, 144, 176, 0.2) !important; }
+html.light-mode .border-white\/20 { border-color: rgba(112, 144, 176, 0.3) !important; }
+html.light-mode .border-t { border-top-color: rgba(112, 144, 176, 0.1) !important; }
+html.light-mode .border-b { border-bottom-color: rgba(112, 144, 176, 0.1) !important; }
+
+/* Semi-transparent Elements */
+html.light-mode .bg-white\/5 { background-color: rgba(112, 144, 176, 0.05) !important; }
+html.light-mode .bg-white\/10 { background-color: rgba(112, 144, 176, 0.1) !important; }
+html.light-mode .hover\:bg-white\/10:hover { background-color: rgba(112, 144, 176, 0.15) !important; }
+html.light-mode .bg-blue-500\/10 { background-color: rgba(59, 130, 246, 0.1) !important; }
+
+/* Hovers */
+html.light-mode .hover\:text-white:hover { color: #000000 !important; }
+
+/* SVG */
+html.light-mode .fill-white { fill: #0f172a !important; }
+
+/* Terminal / Specific components */
+html.light-mode .terminal { background-color: rgba(255, 255, 255, 0.9) !important; }
+html.light-mode .scanline-effect::after { background: linear-gradient(to bottom, transparent, rgba(59, 130, 246, 0.02), transparent); }
+
+/* Fix Lucide Icons Layout Shift (FOUC) */
+i[data-lucide] {
+    display: inline-block !important;
+}
+
+
+/* Hide scrollbar universally for all elements and all browsers */
+::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+* {
+    -ms-overflow-style: none !important;  /* IE and Edge */
+    scrollbar-width: none !important;  /* Firefox */
+}
+
+
+/* Red Glow Hovers in Light Mode */
+html.light-mode .group-card:hover,
+html.light-mode .hover\:border-red-500\/30:hover {
+    border-color: rgba(239, 68, 68, 0.8) !important;
+    background-color: rgba(239, 68, 68, 0.08) !important;
+    box-shadow: 0 5px 15px rgba(239, 68, 68, 0.15) !important;
+}
+html.light-mode .group-card:hover h3,
+html.light-mode .hover\:border-red-500\/30:hover h3 {
+    color: rgba(239, 68, 68, 0.9) !important;
+}

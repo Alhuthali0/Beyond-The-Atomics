@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remediation: {{ ttp_id }} | Beyond the Atomics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root { --glass-bg: rgba(15, 23, 42, 0.8); --glass-border: rgba(255, 255, 255, 0.1); }
+        body { background: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; min-height: 100vh; }
+        .glass { background: var(--glass-bg); backdrop-filter: blur(12px); border: 1px solid var(--glass-border); }
+        .mitigation-card:hover { transform: translateY(-4px); border-color: rgba(34, 197, 94, 0.4); box-shadow: 0 20px 40px -20px rgba(34, 197, 94, 0.2); }
+        .format-desc ul { list-style-type: disc; margin-left: 1.5rem; margin-top: 0.5rem; margin-bottom: 1rem; color: #94a3b8; }
+        .format-desc p { margin-bottom: 1rem; color: #cbd5e1; line-height: 1.6; }
+        .format-desc strong { color: #f8fafc; }
+    
+        
+
+        
+
+        
+
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: -1;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(56, 189, 248, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(129, 140, 248, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 1) 0%, #020617 100%);
+        }
+
+        .blob {
+            position: fixed;
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(to right, var(--neon-blue), var(--neon-purple));
+            filter: blur(80px);
+            border-radius: 50%;
+            z-index: -1;
+            opacity: 0.2;
+            animation: float 20s infinite alternate;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            100% {
+                transform: translate(100px, 50px) scale(1.1);
+            }
+        }
+
+</style>
+<!-- FOUC Prevention & Animation Styles -->
+    <style>
+        @keyframes instantFade {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Apply instant simultaneous fade to all main elements, no delays, incredibly fast */
+        .glass:not(nav, nav .glass, #smart-tooltip), .ttp-card, .asset-card, tbody tr {
+            animation: instantFade 0.25s ease-out forwards;
+        }
+    </style>
+
+    <!-- Theme Engine -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+</head>
+<body class="bg-[#020617] overflow-x-hidden p-4 md:p-8">
+
+    <div class="bg-overlay"></div>
+    <div class="blob" style="top: -100px; left: -100px;"></div>
+    <div class="blob" style="bottom: -100px; right: -100px; animation-delay: -5s;"></div>
+
+    
+    
+    
+
+    {% include 'nav.html' %}
+    
+    <div class="max-w-7xl mx-auto px-8 pb-16 pt-8">
+        <!-- Header Section -->
+        <div class="relative glass rounded-[3rem] p-10 mb-12 overflow-hidden border border-white/5">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-green-500 to-transparent opacity-50"></div>
+            <div class="absolute -right-20 -top-20 w-64 h-64 bg-green-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="flex items-center gap-6 mb-6">
+                <div class="p-4 bg-green-500/10 rounded-2xl border border-green-500/20">
+                    <i data-lucide="shield-check" class="text-green-400 w-10 h-10"></i>
+                </div>
+                <div>
+                    <h1 class="text-4xl font-black text-white mb-2">{{ name }}</h1>
+                    <div class="flex items-center gap-3">
+                        <span class="px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-xs font-bold text-slate-300 tracking-widest uppercase flex items-center gap-2">
+                            <i data-lucide="tag" class="w-3 h-3"></i> {{ ttp_id }}
+                        </span>
+                        <span class="px-4 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full text-xs font-bold text-green-400 tracking-widest uppercase flex items-center gap-2">
+                            <i data-lucide="check-circle" class="w-3 h-3"></i> Remediation Plan
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <p class="text-slate-400 max-w-3xl leading-relaxed text-sm">
+                Implementing the mitigations below will reduce the attack surface and prevent adversaries from successfully executing <strong class="text-slate-200">{{ ttp_id }}</strong> techniques in your environment.
+            </p>
+        </div>
+
+        <!-- Mitigations Section -->
+        <div class="mb-8 flex items-center justify-between">
+            <h2 class="text-2xl font-bold flex items-center gap-3">
+                <i data-lucide="layers" class="text-blue-400"></i> Recommended Mitigations
+            </h2>
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">{{ mitigations|length }} Strategies Available</span>
+        </div>
+
+        {% if mitigations %}
+        <div class="grid grid-cols-1 gap-6">
+            {% for mit in mitigations %}
+            <div class="mitigation-card glass p-8 rounded-[2rem] border border-white/5 transition-all relative overflow-hidden group">
+                <!-- Decorative background elements -->
+                <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-green-500/10 transition-colors"></div>
+                
+                <div class="flex items-start gap-6 relative z-10">
+                    <div class="p-3 bg-white/5 rounded-xl border border-white/10 group-hover:bg-green-500/10 group-hover:border-green-500/30 transition-all mt-1">
+                        <i data-lucide="git-merge" class="w-5 h-5 text-slate-400 group-hover:text-green-400 transition-colors"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-xl font-bold text-white mb-4 group-hover:text-green-300 transition-colors">{{ mit.mitigation_name }}</h3>
+                        
+                        <div class="format-desc text-sm">
+                            {{ mit.description.replace('\n', '<br>') | safe }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="glass p-16 rounded-[3rem] border border-white/5 text-center flex flex-col items-center justify-center">
+            <div class="p-6 bg-slate-900/50 rounded-full mb-6">
+                <i data-lucide="ghost" class="w-12 h-12 text-slate-500"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">No Specific Mitigations Found</h3>
+            <p class="text-slate-400 max-w-md">There are currently no mapped structural mitigations for this specific technique in the database. Rely on robust baseline monitoring and generic endpoint protections.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        lucide.createIcons();
+        
+        // Simple script to format the text better if it has hyphens for lists
+        document.addEventListener("DOMContentLoaded", () => {
+            document.querySelectorAll('.format-desc').forEach(desc => {
+                let html = desc.innerHTML;
+                // Replace "- " with bullet points (crude markdown parsing for the UI)
+                html = html.replace(/(<br>\s*-\s+)(.*?)(?=(<br>|$))/g, '<li class="ml-4 mb-2 flex items-start"><span class="mr-2 text-blue-400 mt-1">•</span><span>$2</span></li>');
+                // Wrap consecutive LIs in a UL
+                html = html.replace(/(<li.*?>.*?<\/li>)+/g, '<ul class="my-4 bg-black/20 p-4 rounded-2xl border border-white/5">$&</ul>');
+                // Clean up any stray <br> before <ul>
+                html = html.replace(/<br>\s*<ul/g, '<ul');
+                
+                desc.innerHTML = html;
+            });
+        });
+    </script>
+
+    
+
+<!-- Global Cascade Animation & Active Nav Link -->
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // 1. Navigation Active Link Highlight
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('nav a');
+        
+        navLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (!href) return;
+            
+            let isActive = false;
+            if (href === '/') {
+                if (currentPath === '/') isActive = true;
+            } else {
+                if (currentPath.startsWith(href)) isActive = true;
+            }
+            
+            if (isActive) {
+                link.classList.remove('text-slate-400');
+                link.classList.add('text-blue-400');
+                link.style.textShadow = '0 0 15px rgba(56, 189, 248, 0.8)';
+            }
+        });
+
+        
+    });
+    </script>
+</body>
+</html>

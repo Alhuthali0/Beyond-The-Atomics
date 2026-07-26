@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beyond The Atomics | Next-Gen Threat Emulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --glass-bg: rgba(15, 23, 42, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --neon-blue: #38bdf8;
+            --neon-purple: #818cf8;
+            --neon-red: #ef4444;
+        }
+
+        body {
+            background-color: #020617;
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: -1;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(56, 189, 248, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(129, 140, 248, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 1) 0%, #020617 100%);
+        }
+
+        .blob {
+            position: fixed;
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(to right, var(--neon-blue), var(--neon-purple));
+            filter: blur(80px);
+            border-radius: 50%;
+            z-index: -1;
+            opacity: 0.2;
+            animation: float 20s infinite alternate;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            100% {
+                transform: translate(100px, 50px) scale(1.1);
+            }
+        }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        }
+
+        @keyframes button-pulse {
+            0% {
+                box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+                transform: scale(1);
+            }
+
+            50% {
+                box-shadow: 0 0 30px rgba(59, 130, 246, 0.6);
+                transform: scale(1.02);
+            }
+
+            100% {
+                box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+                transform: scale(1);
+            }
+        }
+
+        .btn-smart-active {
+            animation: button-pulse 3s infinite cubic-bezier(0.4, 0, 0.6, 1);
+        }
+
+        .logout-btn {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .logout-btn:hover {
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: white;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .logout-btn:hover i {
+            transform: scale(1.1) translateX(-2px);
+            color: var(--neon-red);
+        }
+
+        .terminal-font {
+            font-family: 'Fira Code', monospace;
+        }
+
+        @keyframes scanline {
+            0% {
+                transform: translateY(-100%);
+            }
+
+            100% {
+                transform: translateY(100%);
+            }
+        }
+
+        .scanline-effect::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to bottom, transparent, rgba(34, 197, 94, 0.03), transparent);
+            animation: scanline 6s linear infinite;
+            pointer-events: none;
+        }
+
+
+
+
+        /* Tooltip Styles */
+        #smart-tooltip.vuln { border: 1px solid rgba(239, 68, 68, 0.5); box-shadow: 0 10px 40px -10px rgba(239,68,68,0.4); }
+        #smart-tooltip.prot { border: 1px solid rgba(34, 197, 94, 0.5); box-shadow: 0 10px 40px -10px rgba(34,197,94,0.4); }
+        #smart-tooltip.nopayload { border: 1px solid rgba(245, 158, 11, 0.5); box-shadow: 0 10px 40px -10px rgba(245,158,11,0.4); }
+        #smart-tooltip.planned { border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 10px 40px -10px rgba(255,255,255,0.1); }
+        #smart-tooltip.detected { border: 1px solid rgba(168, 85, 247, 0.5); box-shadow: 0 10px 40px -10px rgba(168,85,247,0.4); }
+
+        /* Heatmap Hover Dimming */
+        #mitre-heatmap:hover > div:not(:hover) {
+            opacity: 0.25;
+            transform: scale(0.95);
+            transition: all 0.4s ease;
+        }
+
+        @keyframes march {
+            to { stroke-dashoffset: -20; }
+        }
+        #tooltip-line {
+            animation: march 0.8s linear infinite;
+        }
+
+        @keyframes terminal-log-fade {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .terminal-log-line {
+            animation: terminal-log-fade 0.35s ease-out;
+        }
+    </style>
+<!-- FOUC Prevention & Animation Styles -->
+    <style>
+        @keyframes instantFade {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Apply instant simultaneous fade to all main elements, no delays, incredibly fast */
+        .glass:not(nav, nav .glass, #smart-tooltip), .ttp-card, .asset-card, tbody tr {
+            animation: instantFade 0.25s ease-out forwards;
+        }
+    </style>
+
+    <!-- Theme Engine -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+</head>
+
+<body class="p-4 md:p-8">
+
+    <div class="bg-overlay"></div>
+    <div class="blob" style="top: -100px; left: -100px;"></div>
+    <div class="blob" style="bottom: -100px; right: -100px; animation-delay: -5s;"></div>
+
+    <!-- Navigation -->
+    {% include 'nav.html' %}
+
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 relative">
+
+        <!-- Sidebar: Active CTI & System Feed -->
+        <div class="lg:col-span-4 space-y-6">
+            
+            <div class="glass p-6 rounded-[2rem] relative overflow-hidden border-white/5">
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-lg font-bold text-white flex items-center gap-3">
+                        <span class="p-2 bg-red-500/20 rounded-lg">
+                            <i data-lucide="radio-tower" class="text-red-400 w-5 h-5 animate-pulse"></i>
+                        </span>
+                        Live Threat Intel
+                    </h2>
+                    <div class="flex gap-1 items-center">
+                        <span class="w-1 h-1 bg-red-500 rounded-full animate-ping"></span>
+                        <span class="text-[10px] text-red-400 font-bold uppercase ml-1">Synced</span>
+                    </div>
+                </div>
+
+                <div id="cti-feed-container" class="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    <!-- Placeholder while loading -->
+                    <div class="text-center py-8">
+                        <i data-lucide="radar" class="text-slate-600 w-8 h-8 animate-[spin_3s_linear_infinite] mx-auto mb-3"></i>
+                        <p class="text-xs text-slate-500">Scanning vector database for localized threats...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scheduled Operations Component -->
+            <div class="glass p-6 rounded-[2rem] border-white/5">
+                <div class="flex items-center gap-3 mb-6">
+                    <span class="p-2 bg-indigo-500/20 rounded-lg">
+                        <i data-lucide="calendar-clock" class="text-indigo-400 w-5 h-5"></i>
+                    </span>
+                    <h2 class="text-lg font-bold text-white">Scheduled Ops</h2>
+                </div>
+                <div id="upcoming-schedules" class="space-y-4">
+                    <p class="text-sm text-slate-500 text-center py-4">No pending operations.</p>
+                </div>
+            </div>
+        </div>
+        <!-- Main Area -->
+        <div class="lg:col-span-8 space-y-8">
+
+            <!-- Hero Action Card -->
+            <div class="glass p-10 rounded-[2.5rem] relative overflow-hidden group border-white/10">
+                <div class="absolute top-0 left-0 w-64 h-64 bg-blue-500/10 filter blur-[80px] -ml-32 -mt-32"></div>
+
+                <div class="flex flex-col items-start gap-5 relative z-10 w-full">
+                    <h2 class="text-3xl font-black text-white tracking-tight">Intelligent Scan</h2>
+                    <p class="text-slate-400 max-w-xl text-sm leading-relaxed mb-2">
+                        Run a dynamic scan of top CTI-mapped TTPs for each agent to validate relevant security controls.
+                    </p>
+
+                    <div class="flex items-center gap-4 w-full">
+                        <button id="autopilot-btn" onclick="engageAutopilot()"
+                            class="group relative px-8 py-3.5 bg-blue-600 text-white font-bold rounded-2xl shadow-lg transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center gap-3 overflow-hidden btn-smart-active text-sm">
+                            <div class="absolute inset-0 bg-gradient-to-r from-blue-400 via-indigo-500 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                            <i data-lucide="zap" class="w-5 h-5 relative z-10 fill-white transition-all duration-300 group-hover:rotate-[15deg] group-hover:scale-110"></i>
+                            <span class="text-sm tracking-wide relative z-10">Start Intelligent Cycle</span>
+                        </button>
+                        
+                        <button id="stop-autopilot-btn" onclick="stopCycle()"
+                            class="hidden px-8 py-3.5 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white font-bold rounded-2xl border border-red-600/50 transition-all duration-300 items-center justify-center gap-3 group flex text-sm">
+                            <i data-lucide="square" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+                            <span class="text-sm tracking-wide">Stop Testing</span>
+                        </button>
+                    </div>
+
+                    <!-- Progress Bar (hidden by default) -->
+                    <div id="cycle-progress-wrap" class="hidden w-full mt-4 bg-black/20 p-5 rounded-2xl border border-white/5">
+                        <div class="flex justify-between text-[11px] font-bold text-slate-400 mb-3 uppercase tracking-widest">
+                            <span id="cycle-progress-label">Initializing...</span>
+                            <span id="cycle-progress-pct">0%</span>
+                        </div>
+                        <div class="w-full bg-white/10 rounded-full h-2.5 shadow-inner">
+                            <div id="cycle-progress-bar" class="bg-blue-500 h-2.5 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" style="width:0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Card -->
+            <div id="results-card"
+                class="glass p-8 rounded-[2.5rem] opacity-0 translate-y-10 transition-all duration-1000 hidden border-white/5">
+                <div class="flex items-center justify-between mb-10">
+                    <div class="flex items-center gap-4">
+                        <div class="p-3 bg-purple-500/20 rounded-2xl">
+                            <i data-lucide="cpu" class="text-purple-400 w-7 h-7"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-white">Correlation Analysis</h2>
+                    </div>
+                    <div id="test-status"
+                        class="px-6 py-2 rounded-xl text-xs font-black tracking-widest border uppercase">WAITING</div>
+                </div>
+
+                <div class="bg-slate-900/60 border border-white/5 border-l-4 border-l-blue-500 hover:border-l-[6px] hover:border-l-blue-400 hover:shadow-[-5px_0_20px_-5px_rgba(59,130,246,0.5)] p-8 rounded-[2rem] mb-8 transition-all duration-300">
+                    <p
+                        class="text-[10px] text-blue-400 font-black uppercase mb-4 tracking-widest flex items-center gap-2">
+                        <i data-lucide="message-square" class="w-3 h-3"></i> Reasoning Output
+                    </p>
+                    <p id="ai-reasoning" class="text-lg text-slate-200 leading-relaxed font-medium italic">
+                        Awaiting initiation...
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div
+                        class="glass bg-white/5 p-6 rounded-2xl border-white/5 group hover:bg-white/10 transition-colors">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase mb-2 block">Target Host</span>
+                        <p id="test-target" class="text-xl text-yellow-400 font-bold terminal-font">--</p>
+                    </div>
+                    <div
+                        class="glass bg-white/5 p-6 rounded-2xl border-white/5 group hover:bg-white/10 transition-colors">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase mb-2 block">Technique Used</span>
+                        <p id="test-name" class="text-xl text-blue-400 font-bold terminal-font">--</p>
+                    </div>
+                    <div
+                        class="glass bg-white/5 p-6 rounded-2xl border-white/5 group hover:bg-white/10 transition-colors text-center">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase mb-2 block">Operation Time</span>
+                        <p id="current-time" class="text-xl text-slate-300 font-bold terminal-font">--</p>
+                    </div>
+                </div>
+
+                <div
+                    class="relative rounded-3xl overflow-hidden border border-white/10 shadow-inner bg-black scanline-effect">
+                    <div class="bg-white/5 px-6 py-3 border-b border-white/5 flex items-center justify-between">
+                        <div class="flex gap-2">
+                            <div
+                                class="w-3 h-3 rounded-full bg-red-500/30 border border-red-500/50 hover:bg-red-500 transition-colors">
+                            </div>
+                            <div
+                                class="w-3 h-3 rounded-full bg-yellow-500/30 border border-yellow-500/50 hover:bg-yellow-500 transition-colors">
+                            </div>
+                            <div
+                                class="w-3 h-3 rounded-full bg-green-500/30 border border-green-500/50 hover:bg-green-500 transition-colors">
+                            </div>
+                        </div>
+                        <span class="text-[10px] text-slate-500 terminal-font tracking-tighter italic">SecOps Console
+                            v2.4 - Secure Connection Established</span>
+                    </div>
+                    <div class="terminal bg-black/40 p-8 h-72 overflow-y-auto terminal-font text-sm">
+                        <div id="test-output" class="text-green-500/80 leading-loose">
+                            <span class="text-slate-700">// Console ready...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MITRE HEATMAP SECTION -->
+            <div class="glass p-8 rounded-[2.5rem]">
+                <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
+                    <h2 class="text-xl font-bold flex items-center gap-2">
+                        <i data-lucide="layout-grid" class="text-blue-400"></i> MITRE ATT&CK Heatmap
+                    </h2>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="exportHeatmapCSV()" class="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl transition-colors border border-white/10 flex items-center gap-2 text-xs font-bold"><i data-lucide="download" class="w-3 h-3"></i> CSV</button>
+                        <button onclick="exportHeatmapImage()" class="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl transition-colors border border-white/10 flex items-center gap-2 text-xs font-bold"><i data-lucide="image" class="w-3 h-3"></i> Image</button>
+                        <span id="heatmap-count" class="text-xs text-slate-500 terminal-font ml-2">Loading...</span>
+                    </div>
+                </div>
+                <div id="mitre-heatmap" class="grid grid-cols-4 md:grid-cols-8 lg:grid-cols-10 gap-2">
+                    <!-- Dynamic Tiles -->
+                </div>
+                <div class="flex flex-wrap gap-3 mt-6">
+                    <div class="px-3 py-1.5 bg-green-500/10 border border-green-500/30 text-green-400 rounded-lg flex items-center gap-2 font-bold text-xs shadow-[0_0_15px_rgba(34,197,94,0.15)]">
+                        <span class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,1)]"></span> ALERTED 
+                        <span id="legend-alerted" class="ml-1 bg-green-500/20 px-1.5 py-0.5 rounded text-[10px]">0</span>
+                    </div>
+                    <div class="px-3 py-1.5 bg-orange-500/10 border border-orange-500/30 text-orange-400 rounded-lg flex items-center gap-2 font-bold text-xs shadow-[0_0_15px_rgba(245,158,11,0.15)]">
+                        <span class="w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(245,158,11,1)] animate-pulse"></span> GAP 
+                        <span id="legend-gap" class="ml-1 bg-orange-500/20 px-1.5 py-0.5 rounded text-[10px]">0</span>
+                    </div>
+                    <div class="px-3 py-1.5 bg-blue-500/10 border border-blue-500/30 text-blue-400 rounded-lg flex items-center gap-2 font-bold text-xs shadow-[0_0_15px_rgba(59,130,246,0.15)]">
+                        <span class="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,1)]"></span> SKIPPED 
+                        <span id="legend-prev" class="ml-1 bg-blue-500/20 px-1.5 py-0.5 rounded text-[10px]">0</span>
+                    </div>
+                    <div class="px-3 py-1.5 bg-white/5 border border-white/10 text-slate-300 rounded-lg flex items-center gap-2 font-bold text-xs">
+                        <span class="w-2 h-2 rounded-full bg-slate-400"></span> PLANNED 
+                        <span id="legend-planned" class="ml-1 bg-white/10 px-1.5 py-0.5 rounded text-[10px]">0</span>
+                    </div>
+                </div>
+                </div>
+            </div>
+
+            <!-- Smart Tooltip Base -->
+            <svg id="tooltip-line-svg" class="fixed top-0 left-0 w-full h-full pointer-events-none z-[90] opacity-0 transition-opacity duration-200 drop-shadow-xl">
+                <line id="tooltip-line" x1="0" y1="0" x2="0" y2="0" stroke="rgba(255,255,255,1)" stroke-width="3" stroke-dasharray="6 4" stroke-linecap="round" />
+                <circle id="tooltip-dot" cx="0" cy="0" r="4" fill="white" />
+            </svg>
+            <div id="smart-tooltip" class="fixed pointer-events-none opacity-0 transition-opacity duration-300 z-[100] glass p-4 rounded-2xl max-w-xs shadow-2xl backdrop-blur-md">
+                <div id="tooltip-header" class="font-bold text-sm mb-2 text-white flex justify-between items-center gap-4">
+                    <span id="tooltip-id" class="terminal-font"></span>
+                    <span id="tooltip-status" class="text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full border"></span>
+                </div>
+                <div id="tooltip-desc" class="text-xs text-slate-300 leading-relaxed font-medium"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // HEATMAP LOGIC — Dynamic: shows all tested TTPs from DB, fills rest with common ones
+        async function renderHeatmap() {
+            try {
+                const response = await fetch('/api/mitre-stats');
+                const stats = await response.json();
+                const container = document.getElementById('mitre-heatmap');
+                container.innerHTML = '';
+
+                // /api/mitre-stats now returns the FULL canonical list:
+                // - "Planned" = in threat intel, not yet tested
+                // - "Vulnerable" / "Protected" / "Skipped" = tested
+                const allTTPs = Object.keys(stats);
+
+                if (allTTPs.length === 0) {
+                    container.innerHTML = `<p class="col-span-full text-center text-slate-500 text-sm py-8">
+                        No target techniques discovered yet. <br>
+                        Click <strong class="text-blue-400">Start Intelligent Cycle</strong> to sync threat intel and populate the heatmap.
+                    </p>`;
+                    const countEl = document.getElementById('heatmap-count');
+                    if (countEl) countEl.innerText = '0 techniques planned';
+                    return;
+                }
+
+                let countVuln = 0, countProt = 0, countSkip = 0, countPlan = 0, countDetected = 0, countPrev = 0;
+                
+                allTTPs.forEach(ttp => {
+                    const data = stats[ttp];
+                    const statusLow = data.status.toLowerCase();
+
+                    // Use color from API if available, fallback to defaults
+                    let bgColor = data.color || 'rgba(255,255,255,0.04)';
+                    let borderColor = 'rgba(255,255,255,0.08)';
+                    let statusLabel = data.status || 'Planned';
+
+                    if (statusLow === 'planned') {
+                        countPlan++;
+                    } else if (statusLow.includes('alerted')) {
+                        borderColor = '#4ade80';
+                        countDetected++;
+                    } else if (statusLow.includes('skipped')) {
+                        borderColor = '#60a5fa';
+                        countPrev++;
+                    } else {
+                        borderColor = '#fbbf24';
+                        countSkip++;
+                    }
+
+                    const box = document.createElement('div');
+                    box.className = `relative h-12 rounded-lg flex flex-col items-center justify-center transition-all hover:scale-110 cursor-pointer`;
+                    box.style.backgroundColor = bgColor;
+                    box.style.border = `1px solid ${borderColor}`;
+                    box.innerHTML = `
+                        <span class="text-[9px] font-bold text-white drop-shadow">${ttp}</span>
+                        <span class="text-[7px] text-white/70 mt-0.5 px-1 truncate max-w-full font-black uppercase tracking-tighter">${statusLabel}</span>
+                    `;
+                    
+                    // SMART TOOLTIP LOGIC
+                    box.addEventListener('mouseenter', (e) => {
+                        const tooltip = document.getElementById('smart-tooltip');
+                        const svgWrap = document.getElementById('tooltip-line-svg');
+                        
+                        document.getElementById('tooltip-id').innerText = ttp;
+                        document.getElementById('tooltip-desc').innerText = data.name || ttp;
+                        
+                        const statusEl = document.getElementById('tooltip-status');
+                        statusEl.innerText = statusLabel;
+                        
+                        // Reset classes
+                        tooltip.className = 'fixed pointer-events-none transition-opacity duration-300 z-[100] glass p-4 rounded-2xl max-w-xs shadow-2xl backdrop-blur-md opacity-100';
+                        statusEl.className = 'text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full border';
+                        
+                        if (statusLow.includes('alerted')) {
+                            tooltip.classList.add('prot');
+                            statusEl.classList.add('border-green-500', 'text-green-400', 'bg-green-500/10');
+                            document.getElementById('tooltip-line').setAttribute('stroke', '#22c55e');
+                            document.getElementById('tooltip-dot').setAttribute('fill', '#22c55e');
+                            svgWrap.style.filter = 'drop-shadow(0 0 12px #22c55e)';
+                        } else if (statusLow.includes('gap') || statusLow.includes('error')) {
+                            tooltip.classList.add('nopayload');
+                            statusEl.classList.add('border-yellow-500', 'text-yellow-400', 'bg-yellow-500/10');
+                            document.getElementById('tooltip-line').setAttribute('stroke', '#f59e0b');
+                            document.getElementById('tooltip-dot').setAttribute('fill', '#f59e0b');
+                            svgWrap.style.filter = 'drop-shadow(0 0 12px #f59e0b)';
+                        } else if (statusLow.includes('skipped')) {
+                            tooltip.classList.add('detected'); // Using purple-ish style for blue
+                            statusEl.classList.add('border-blue-500', 'text-blue-400', 'bg-blue-500/10');
+                            document.getElementById('tooltip-line').setAttribute('stroke', '#3b82f6');
+                            document.getElementById('tooltip-dot').setAttribute('fill', '#3b82f6');
+                            svgWrap.style.filter = 'drop-shadow(0 0 12px #3b82f6)';
+                        } else {
+                            tooltip.classList.add('planned');
+                            statusEl.classList.add('border-white/20', 'text-slate-400', 'bg-white/5');
+                            document.getElementById('tooltip-line').setAttribute('stroke', '#cbd5e1');
+                            document.getElementById('tooltip-dot').setAttribute('fill', '#cbd5e1');
+                            svgWrap.style.filter = 'drop-shadow(0 0 12px #cbd5e1)';
+                        }
+                        
+                        tooltip.style.left = (e.clientX + 15) + 'px';
+                        tooltip.style.top = (e.clientY + 15) + 'px';
+                        
+                        svgWrap.classList.replace('opacity-0', 'opacity-100');
+                    });
+
+                    box.addEventListener('mousemove', (e) => {
+                        const tooltip = document.getElementById('smart-tooltip');
+                        // Ensure it doesn't go off-screen
+                        let x = e.clientX + 15;
+                        let y = e.clientY + 15;
+                        if (x + 250 > window.innerWidth) x = e.clientX - 260;
+                        if (y + 100 > window.innerHeight) y = e.clientY - 110;
+                        
+                        tooltip.style.left = x + 'px';
+                        tooltip.style.top = y + 'px';
+                        
+                        // Update SVG line
+                        const boxRect = box.getBoundingClientRect();
+                        const line = document.getElementById('tooltip-line');
+                        const dot = document.getElementById('tooltip-dot');
+                        
+                        const startX = boxRect.left + boxRect.width / 2;
+                        const startY = boxRect.top + boxRect.height / 2;
+                        
+                        line.setAttribute('x1', startX);
+                        line.setAttribute('y1', startY);
+                        line.setAttribute('x2', x);
+                        line.setAttribute('y2', y + 20); // Point slightly lower to hit the side of the tooltip
+                        
+                        dot.setAttribute('cx', startX);
+                        dot.setAttribute('cy', startY);
+                    });
+
+                    box.addEventListener('mouseleave', () => {
+                        document.getElementById('smart-tooltip').classList.replace('opacity-100', 'opacity-0');
+                        document.getElementById('tooltip-line-svg').classList.replace('opacity-100', 'opacity-0');
+                    });
+                    
+                    // ON CLICK: Send to Remediation Route
+                    box.addEventListener('click', () => {
+                        window.location.href = '/remediation/' + ttp;
+                    });
+
+                    container.appendChild(box);
+                });
+
+                window.heatmapStats = stats; // Store for export
+
+                // Update counters
+                const countEl = document.getElementById('heatmap-count');
+                const testedCount = countSkip + countDetected + countPrev;
+                if (countEl) countEl.innerText = `${testedCount} tested / ${allTTPs.length} planned`;
+                
+                document.getElementById('legend-gap').innerText = countSkip;
+                document.getElementById('legend-alerted').innerText = countDetected;
+                document.getElementById('legend-prev').innerText = countPrev;
+                document.getElementById('legend-planned').innerText = countPlan;
+
+            } catch (err) { console.error("Heatmap Load Error", err); }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return "";
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function engageAutopilot() {
+            const btn = document.getElementById('autopilot-btn');
+            const resultsCard = document.getElementById('results-card');
+            const outputArea = document.getElementById('test-output');
+            const statusArea = document.getElementById('test-status');
+            const progressWrap = document.getElementById('cycle-progress-wrap');
+            const progressBar = document.getElementById('cycle-progress-bar');
+            const progressLabel = document.getElementById('cycle-progress-label');
+            const progressPct = document.getElementById('cycle-progress-pct');
+
+            const stopBtn = document.getElementById('stop-autopilot-btn');
+
+            // --- UI: Lock button, show progress ---
+            btn.disabled = true;
+            btn.classList.remove('btn-smart-active');
+            btn.classList.add('opacity-70', 'cursor-wait');
+            btn.innerHTML = `<div class="relative z-10 flex items-center gap-3"><i data-lucide="loader-2" class="w-6 h-6 animate-spin"></i><span>Running Full Cycle...</span></div>`;
+            
+            stopBtn.classList.remove('hidden');
+            lucide.createIcons();
+
+            progressWrap.classList.remove('hidden');
+            progressBar.classList.remove('bg-red-500');
+            progressBar.classList.add('bg-blue-500');
+            progressBar.style.width = '0%';
+            progressLabel.innerText = 'Connecting to orchestrator...';
+            progressPct.innerText = '0%';
+
+            resultsCard.classList.remove('hidden');
+            setTimeout(() => resultsCard.classList.remove('opacity-0', 'translate-y-10'), 50);
+
+            statusArea.innerText = "RUNNING FULL CYCLE";
+            statusArea.className = "px-6 py-2 rounded-xl text-xs font-black border border-yellow-500/50 text-yellow-500 bg-yellow-500/10 animate-pulse";
+            const getCurrentTime = () => new Date().toLocaleTimeString('en-GB', { hour12: false });
+            const terminalPane = outputArea.closest('.terminal') || outputArea.parentElement;
+            outputArea.innerHTML = '';
+
+            const appendLog = (htmlString) => {
+                const line = document.createElement('div');
+                line.className = 'terminal-log-line mb-1'; // Added margin for readability
+                line.innerHTML = htmlString;
+                outputArea.appendChild(line);
+                
+                // Keep terminal scrolled to bottom
+                terminalPane.scrollTop = terminalPane.scrollHeight;
+            };
+
+            let cycleTotalSteps = 0;
+            let cycleCompletedSteps = 0;
+            let lastResultSnapshot = null;
+
+            const resultStatusStyle = (rawStatus) => {
+                const statusLower = (rawStatus || 'Unknown').toString().trim().toLowerCase();
+                let icon = '⚪';
+                let color = 'text-slate-400';
+                let finalStatus = (rawStatus || 'Unknown').toString().trim();
+                
+                if (statusLower.includes('gap')) {
+                    icon = '🟠';
+                    color = 'text-orange-400';
+                    finalStatus = 'GAP';
+                } else if (statusLower.includes('alerted')) {
+                    icon = '🟢';
+                    color = 'text-green-400';
+                    finalStatus = 'ALERTED';
+                } else if (statusLower.includes('skipped')) {
+                    icon = '🔵';
+                    color = 'text-blue-400';
+                    finalStatus = 'SKIPPED';
+                } else if (statusLower.includes('error')) {
+                    icon = '🟠';
+                    color = 'text-orange-400';
+                    finalStatus = 'GAP';
+                }
+                return { icon, color, finalStatus, statusLower };
+            };
+
+            const appendSystemLog = (msg, target = "") => {
+                const logCont = document.getElementById('cti-feed-container'); // Redirecting some logs to the feed area or a new area if needed
+                // For now, let's just use the terminal for everything live as requested
+            };
+
+            const handleEvent = (ev) => {
+                const ts = ev.ts || getCurrentTime();
+                switch (ev.event) {
+                    case 'log':
+                        appendLog(`<span class="text-slate-500">> [${escapeHtml(ts)}] [LOG] ${escapeHtml(ev.message)}</span>`);
+                        break;
+                    case 'system':
+                        if (ev.message.includes('Fetching Threat Intelligence')) {
+                            appendLog(`<span class="text-blue-400 font-bold animate-pulse">> [${escapeHtml(ts)}] [CTI] Fetching latest threat intelligence from AlienVault OTX...</span>`);
+                        } else if (ev.message.includes('Threat Intelligence Fetched')) {
+                            appendLog(`<span class="text-green-400 font-bold">> [${escapeHtml(ts)}] [CTI] ${escapeHtml(ev.message)}</span>`);
+                        } else if (ev.message.startsWith('[CTI]')) {
+                            appendLog(`<span class="text-indigo-400 font-bold">> [${escapeHtml(ts)}] ${escapeHtml(ev.message)}</span>`);
+                        } else if (ev.message.includes('Stop signal')) {
+                            appendLog(`<span class="text-red-500 font-bold">> [${escapeHtml(ts)}] [SYSTEM] ${escapeHtml(ev.message)}</span>`);
+                        } else {
+                            appendLog(`<span class="text-slate-400">> [${escapeHtml(ts)}] [SYSTEM] ${escapeHtml(ev.message)}</span>`);
+                        }
+                        break;
+                    case 'dispatch': {
+                        cycleTotalSteps = typeof ev.total === 'number' ? ev.total : 0;
+                        cycleCompletedSteps = 0;
+                        const targets = ev.targets || [];
+                        const parts = targets.map(t =>
+                            `[${escapeHtml((t.hostname || 'UNKNOWN').toString().toUpperCase())} (${escapeHtml(t.os || '?')})]`
+                        ).join(' & ');
+                        appendLog(`<span class="text-cyan-300">> [${escapeHtml(ts)}] [DISPATCH] Identified ${targets.length} Active Targets: ${parts || '[UNKNOWN]'}</span>`);
+                        progressLabel.innerText = cycleTotalSteps
+                            ? `Running ${cycleTotalSteps} task(s)...`
+                            : 'No tasks queued.';
+                        break;
+                    }
+                    case 'attack':
+                        appendLog(`<span class="text-blue-400">> [${escapeHtml(ts)}] [ATTACK] Tasking ${escapeHtml(ev.target || 'Unknown')} with ${escapeHtml(ev.ttp_id || 'N/A')} (${escapeHtml(ev.ttp_name || 'Unknown Technique')})...</span>`);
+                        break;
+                    case 'result': {
+                        cycleCompletedSteps += 1;
+                        if (cycleTotalSteps > 0) {
+                            const pct = Math.min(100, Math.round((cycleCompletedSteps / cycleTotalSteps) * 100));
+                            progressBar.style.width = pct + '%';
+                            progressPct.innerText = pct + '%';
+                        }
+                        const { icon, color, finalStatus, statusLower } = resultStatusStyle(ev.status);
+                        let detailPart = '';
+                        if (ev.detail) {
+                            detailPart = ` <span class="text-slate-500">(${escapeHtml(ev.detail)})</span>`;
+                        }
+                        appendLog(`<span class="${color}">> [${escapeHtml(ts)}] [RESULT] ${escapeHtml(ev.target || 'Unknown')} execution complete. Status: ${icon} ${escapeHtml(finalStatus.toUpperCase())}${detailPart}</span>`);
+                        if (statusLower !== 'skipped') {
+                            lastResultSnapshot = ev;
+                        }
+                        break;
+                    }
+                    case 'summary': {
+                        const s = ev;
+                        progressBar.style.width = '100%';
+                        progressPct.innerText = '100%';
+                        progressLabel.innerText = `Cycle complete: ${s.executed} executed, ${s.skipped} skipped`;
+                        const totalN = Number(s.total) || 0;
+                        const execN = Number(s.executed) || 0;
+                        const skipN = Number(s.skipped) || 0;
+                        const noWork = totalN === 0 && execN === 0 && skipN === 0;
+                        if (noWork) {
+                            statusArea.innerText = 'IDLE';
+                            statusArea.className = 'px-6 py-2 rounded-xl text-xs font-black border border-slate-500/50 text-slate-400 bg-slate-500/10';
+                        } else if (s.vulnerable > 0) {
+                            statusArea.innerText = 'DETECTION GAP';
+                            statusArea.className = 'px-6 py-2 rounded-xl text-xs font-black border uppercase border-orange-500/50 text-orange-500 bg-orange-500/10';
+                        } else {
+                            statusArea.innerText = 'ALERTED';
+                            statusArea.className = 'px-6 py-2 rounded-xl text-xs font-black border uppercase border-green-500/50 text-green-500 bg-green-500/10';
+                        }
+                        appendLog(`<span class="text-yellow-400 font-bold">> [${escapeHtml(ts)}] [SUMMARY] Cycle Finished: ${s.executed} Executed, ${s.vulnerable} GAPs found, ${s.protected || 0} Alerted, ${s.skipped} Skipped</span>`);
+                        const totalForCopy = typeof s.total === 'number' ? s.total : (s.executed + s.skipped);
+                        document.getElementById('ai-reasoning').innerText =
+                            `Intelligent validation cycle completed. ${s.executed} techniques executed (${totalForCopy} steps). ${s.vulnerable} GAPs identified, ${s.protected || 0} Alerted, ${s.skipped} skipped.`;
+                        if (lastResultSnapshot) {
+                            document.getElementById('test-target').innerText = lastResultSnapshot.target || 'Local';
+                            document.getElementById('test-name').innerText =
+                                `${lastResultSnapshot.ttp_id || '—'} (${lastResultSnapshot.status || ''})`;
+                        } else {
+                            document.getElementById('test-target').innerText = '—';
+                            document.getElementById('test-name').innerText = `${s.executed} TTPs run`;
+                        }
+                        document.getElementById('current-time').innerText = new Date().toLocaleTimeString();
+                        renderHeatmap();
+                        renderCTIFeed();
+                        break;
+                    }
+                    case 'error':
+                        progressBar.style.width = '100%';
+                        progressPct.innerText = '100%';
+                        progressBar.classList.replace('bg-blue-500', 'bg-red-500');
+                        progressLabel.innerText = 'Error during cycle.';
+                        statusArea.innerText = 'ERROR';
+                        statusArea.className = 'px-6 py-2 rounded-xl text-xs font-black border border-red-500/50 text-red-500 bg-red-500/10';
+                        appendLog(`<span class="text-red-400 font-bold">> [${escapeHtml(ts)}] [ERROR] ${escapeHtml(ev.message || 'Unknown error.')}</span>`);
+                        break;
+                    default:
+                        break;
+                }
+            };
+
+            try {
+                const response = await fetch('/api/autopilot/full-cycle', { method: 'POST' });
+                if (!response.ok) {
+                    const errText = await response.text();
+                    handleEvent({ event: 'error', message: errText || response.statusText, ts: getCurrentTime() });
+                } else if (!response.body) {
+                    handleEvent({ event: 'error', message: 'No response body (streaming not supported).', ts: getCurrentTime() });
+                } else {
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+                    while (true) {
+                        const { value, done } = await reader.read();
+                        if (done) break;
+                        buffer += decoder.decode(value, { stream: true });
+                        let idx;
+                        while ((idx = buffer.indexOf('\n')) >= 0) {
+                            const line = buffer.slice(0, idx).trim();
+                            buffer = buffer.slice(idx + 1);
+                            if (!line) continue;
+                            try {
+                                handleEvent(JSON.parse(line));
+                            } catch {
+                                appendLog(`<span class="text-orange-400">> [${escapeHtml(getCurrentTime())}] [PARSE] ${escapeHtml(line.substring(0, 200))}</span>`);
+                            }
+                        }
+                    }
+                    const rest = buffer.trim();
+                    if (rest) {
+                        try {
+                            handleEvent(JSON.parse(rest));
+                        } catch (_) { /* ignore trailing garbage */ }
+                    }
+                }
+            } catch (err) {
+                statusArea.innerText = "CRITICAL ERROR";
+                statusArea.className = "px-6 py-2 rounded-xl text-xs font-black border border-red-500/50 text-red-500 bg-red-500/10";
+                appendLog(`<span class="text-red-600 font-black">> [${escapeHtml(getCurrentTime())}] [CRITICAL] Connection to controller failed: ${escapeHtml(err.message)}</span>`);
+            } finally {
+                btn.disabled = false;
+                btn.classList.add('btn-smart-active');
+                btn.classList.remove('opacity-70', 'cursor-wait');
+                btn.innerHTML = `<div class="relative z-10 flex items-center gap-3"><i data-lucide="zap" class="w-6 h-6 fill-white"></i><span class="text-xl tracking-wide">Start Intelligent Cycle</span></div>`;
+                
+                stopBtn.classList.add('hidden');
+                lucide.createIcons();
+                outputArea.scrollTop = outputArea.scrollHeight;
+            }
+        }
+
+        async function stopCycle() {
+            try {
+                const response = await fetch('/api/autopilot/stop', { method: 'POST' });
+                if (response.ok) {
+                    const btn = document.getElementById('stop-autopilot-btn');
+                    btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i><span>Stopping...</span>`;
+                    lucide.createIcons();
+                }
+            } catch (err) {
+                console.error("Stop Cycle Error", err);
+            }
+        }
+
+        async function runManualTTP() {
+            const ttpInput = document.getElementById('manual-ttp-input').value.trim();
+            if (!ttpInput) { alert("Enter TTP ID"); return; }
+            const btn = document.getElementById('manual-btn');
+            const resultsCard = document.getElementById('results-card');
+            const outputArea = document.getElementById('test-output');
+            const statusArea = document.getElementById('test-status');
+
+            resultsCard.classList.remove('hidden');
+            setTimeout(() => resultsCard.classList.remove('opacity-0', 'translate-y-10'), 50);
+
+            btn.disabled = true;
+            btn.innerText = "Running...";
+
+            statusArea.innerText = "RUNNING";
+            statusArea.className = "px-6 py-2 rounded-xl text-xs font-black border border-yellow-500/50 text-yellow-500 bg-yellow-500/10 animate-pulse";
+
+            try {
+                const response = await fetch('/api/manual', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ttp_id: ttpInput })
+                });
+                const data = await response.json();
+                data.reasoning = "Manual execution triggered. AI reasoning module bypassed by operator.";
+                updateUI(data);
+            } catch (err) {
+                alert("Connection Error");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Run";
+                outputArea.scrollTop = outputArea.scrollHeight;
+            }
+        }
+
+        function updateUI(data) {
+            document.getElementById('ai-reasoning').innerText = data.reasoning || "Manual Mode";
+            document.getElementById('test-target').innerText = data.target || "Local";
+            document.getElementById('test-name').innerText = data.ttp_id || "--";
+            document.getElementById('current-time').innerText = new Date().toLocaleTimeString();
+            document.getElementById('test-output').innerText = data.output || "";
+            const status = document.getElementById('test-status');
+            const statLower = (data.sec_status || "").toLowerCase();
+            
+            status.innerText = data.sec_status || "EXECUTED";
+            
+            if (statLower.includes('gap')) {
+                status.className = "px-6 py-2 rounded-xl text-xs font-black border uppercase border-orange-500/50 text-orange-500 bg-orange-500/10";
+            } else if (statLower.includes('alerted')) {
+                status.className = "px-6 py-2 rounded-xl text-xs font-black border uppercase border-green-500/50 text-green-500 bg-green-500/10";
+            } else if (statLower.includes('skipped')) {
+                status.className = "px-6 py-2 rounded-xl text-xs font-black border uppercase border-blue-500/50 text-blue-500 bg-blue-500/10";
+            } else if (statLower.includes('error')) {
+                status.className = "px-6 py-2 rounded-xl text-xs font-black border uppercase border-orange-500/50 text-orange-500 bg-orange-500/10";
+            } else {
+                status.className = "px-6 py-2 rounded-xl text-xs font-black border uppercase border-slate-500/50 text-slate-300 bg-slate-500/10";
+            }
+
+            // Refresh Heatmap after each run
+            renderHeatmap();
+        }
+
+        function exportHeatmapCSV() {
+            if (!window.heatmapStats) return;
+            let csv = "TTP_ID,Name,Status\\n";
+            for (const [ttp, data] of Object.entries(window.heatmapStats)) {
+                // Escape quotes
+                const safeName = (data.name || '').replace(/"/g, '""');
+                csv += `${ttp},"${safeName}",${data.status}\\n`;
+            }
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `heatmap_export_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function exportHeatmapImage() {
+            const el = document.getElementById('mitre-heatmap').parentElement;
+            // Add a little padding to the background
+            html2canvas(el, { backgroundColor: '#020617', scale: 2 }).then(canvas => {
+                const a = document.createElement('a');
+                a.href = canvas.toDataURL('image/png');
+                a.download = `heatmap_export_${new Date().toISOString().slice(0,10)}.png`;
+                a.click();
+            });
+        }
+
+        // Initial Load
+        window.onload = renderHeatmap;
+
+        // Fetch and Render Live CTI Feed
+        async function renderCTIFeed() {
+            try {
+                const response = await fetch('/api/cti/feed');
+                const data = await response.json();
+                const container = document.getElementById('cti-feed-container');
+                
+                if (data.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center p-6 border border-dashed border-white/10 rounded-2xl">
+                            <p class="text-slate-500 text-sm">No localized threat intel found.</p>
+                            <p class="text-xs text-slate-600 mt-2">Deploy agents to map assets, then run a cycle to sync CTI.</p>
+                        </div>`;
+                    return;
+                }
+
+                container.innerHTML = ''; // Clear loading spinner
+                
+                data.forEach(item => {
+                    // Create badges for each MITRE technique - handle null/empty safely
+                    const techList = item.techniques ? String(item.techniques).split(',') : [];
+                    const ttpBadges = techList.map(t => 
+                        `<span class="text-[9px] bg-red-500/10 text-red-400 px-2 py-0.5 rounded-md border border-red-500/20">${t.trim()}</span>`
+                    ).join('');
+
+                    container.innerHTML += `
+                        <div class="bg-black/30 hover:bg-white/5 p-5 rounded-2xl border border-white/5 hover:border-red-500/30 transition-all duration-500 cursor-pointer group">
+                            <div class="flex justify-between items-start mb-2">
+                                <h3 class="font-bold text-slate-200 text-sm group-hover:text-red-300 transition-colors leading-snug">${item.title}</h3>
+                            </div>
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="text-[9px] uppercase font-black tracking-widest text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
+                                    Target: ${item.keyword}
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-400 mb-4 leading-relaxed">${item.description}</p>
+                            <div class="flex items-center justify-between pt-3 border-t border-white/5">
+                                <span class="text-[10px] text-slate-500 flex items-center gap-1">
+                                    <i data-lucide="satellite" class="w-3 h-3"></i> ${item.source}
+                                </span>
+                                <div class="flex flex-wrap gap-1 justify-end">${ttpBadges}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                // Re-initialize icons for the newly injected HTML
+                lucide.createIcons();
+                
+            } catch (err) {
+                console.error("CTI Feed Load Error", err);
+                document.getElementById('cti-feed-container').innerHTML = '<p class="text-red-500 text-xs text-center py-4">Failed to load threat intelligence feed.</p>';
+            }
+        }
+
+        // Fetch and Render Upcoming Schedules
+        async function renderUpcomingSchedules() {
+            try {
+                const response = await fetch('/api/schedule/upcoming');
+                const data = await response.json();
+                const container = document.getElementById('upcoming-schedules');
+                
+                if (data.length === 0) {
+                    container.innerHTML = '<p class="text-[10px] text-slate-500 text-center py-4">No pending operations.</p>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                data.forEach(item => {
+                    container.innerHTML += `
+                        <div class="bg-slate-900/40 p-4 rounded-xl border border-white/5 flex items-center justify-between group hover:border-blue-500/30 transition-all">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">${item.target}</span>
+                                <span class="text-xs text-slate-500 uppercase tracking-tighter">${item.ttp}</span>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-black text-blue-400">${item.time}</div>
+                                <div class="text-[10px] text-slate-600 uppercase">${item.date}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (err) { console.error("Schedule Load Error", err); }
+        }
+
+        // Add the feed render to the initial load
+        window.onload = () => {
+            renderHeatmap();
+            renderCTIFeed();
+            renderUpcomingSchedules();
+        };
+    </script>
+
+    
+
+<!-- Global Cascade Animation & Active Nav Link -->
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // 1. Navigation Active Link Highlight
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('nav a');
+        
+        navLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (!href) return;
+            
+            let isActive = false;
+            if (href === '/') {
+                if (currentPath === '/') isActive = true;
+            } else {
+                if (currentPath.startsWith(href)) isActive = true;
+            }
+            
+            if (isActive) {
+                link.classList.remove('text-slate-400');
+                link.classList.add('text-blue-400');
+                link.style.textShadow = '0 0 15px rgba(56, 189, 248, 0.8)';
+            }
+        });
+
+        
+    });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Reports | Beyond the Atomics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --glass-bg: rgba(15, 23, 42, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+        body {
+            background: #020617;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+        }
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+        }
+    
+        
+
+        
+
+        
+
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: -1;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(56, 189, 248, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(129, 140, 248, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 1) 0%, #020617 100%);
+        }
+
+        .blob {
+            position: fixed;
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(to right, var(--neon-blue), var(--neon-purple));
+            filter: blur(80px);
+            border-radius: 50%;
+            z-index: -1;
+            opacity: 0.2;
+            animation: float 20s infinite alternate;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            100% {
+                transform: translate(100px, 50px) scale(1.1);
+            }
+        }
+
+
+
+</style>
+<!-- FOUC Prevention & Animation Styles -->
+    <style>
+        @keyframes instantFade {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Apply instant simultaneous fade to all main elements, no delays, incredibly fast */
+        .glass:not(nav, nav .glass, #smart-tooltip), .ttp-card, .asset-card, tbody tr {
+            animation: instantFade 0.25s ease-out forwards;
+        }
+    </style>
+
+    <!-- Theme Engine -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+</head>
+<body class="bg-[#020617] text-slate-300 p-4 md:p-8">
+
+    <div class="bg-overlay"></div>
+    <div class="blob" style="top: -100px; left: -100px;"></div>
+    <div class="blob" style="bottom: -100px; right: -100px; animation-delay: -5s;"></div>
+
+    
+    
+    
+
+    {% include 'nav.html' %}
+    
+    <div class="max-w-7xl mx-auto px-8 pb-12">
+        <div class="flex justify-between items-center mb-12">
+            <div class="flex items-center gap-4">
+                <div class="p-3 bg-purple-500/10 rounded-2xl">
+                    <i data-lucide="file-text" class="text-purple-400 w-8 h-8"></i>
+                </div>
+                <div>
+                    <h1 class="text-4xl font-black tracking-tight text-white">Security Reporting</h1>
+                    <p class="text-xs text-slate-500 uppercase tracking-widest font-bold">Weekly Performance Audit</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass p-12 rounded-[3rem] text-center">
+            <div class="w-24 h-24 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-8 border border-blue-500/20">
+                <i data-lucide="file-down" class="text-blue-400 w-12 h-12"></i>
+            </div>
+            <h2 class="text-3xl font-bold mb-4">Weekly Exposure Analysis</h2>
+            <p class="text-slate-400 max-w-lg mx-auto mb-10 leading-relaxed">
+                Generate a comprehensive PDF report containing threat intelligence context, automated emulation results, and prioritized defensive recommendations for your environment.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 text-left">
+                <div class="p-6 bg-slate-900/50 rounded-2xl border border-white/5">
+                    <i data-lucide="shield-check" class="text-green-400 w-5 h-5 mb-3"></i>
+                    <h3 class="text-sm font-bold mb-1">Defense Metrics</h3>
+                    <p class="text-xs text-slate-500">Aggregated resilience scores and prevention rates.</p>
+                </div>
+                <div class="p-6 bg-slate-900/50 rounded-2xl border border-white/5">
+                    <i data-lucide="target" class="text-red-400 w-5 h-5 mb-3"></i>
+                    <h3 class="text-sm font-bold mb-1">TTP Breakdown</h3>
+                    <p class="text-xs text-slate-500">Detailed logs of executed techniques and outcomes.</p>
+                </div>
+                <div class="p-6 bg-slate-900/50 rounded-2xl border border-white/5">
+                    <i data-lucide="life-buoy" class="text-blue-400 w-5 h-5 mb-3"></i>
+                    <h3 class="text-sm font-bold mb-1">Mitigation Guide</h3>
+                    <p class="text-xs text-slate-500">Surgical defensive advice for identified gaps.</p>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-center gap-4">
+                <a href="/report/download" class="inline-flex items-center gap-3 bg-blue-600 hover:bg-blue-500 text-white font-bold py-5 px-10 rounded-2xl transition-all shadow-2xl shadow-blue-500/40 group">
+                    <i data-lucide="download" class="w-5 h-5 group-hover:translate-y-1 transition-transform"></i>
+                    Download PDF
+                </a>
+                
+                <button onclick="openEmailModal()" class="inline-flex items-center gap-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-5 px-10 rounded-2xl transition-all shadow-2xl shadow-indigo-500/40 group">
+                    <i data-lucide="send" class="w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
+                    Send via Email
+                </button>
+            </div>
+            
+            <p class="text-[10px] text-slate-600 uppercase tracking-widest font-bold mt-8">
+                Format: PDF ()
+            </p>
+        </div>
+
+        <!-- SMTP Settings Section -->
+        <div class="glass p-10 rounded-[3rem] mt-8 border border-white/5">
+            <div class="flex items-center gap-4 mb-8 border-b border-white/5 pb-6">
+                <div class="p-3 bg-slate-800/50 rounded-xl">
+                    <i data-lucide="settings" class="text-slate-400 w-6 h-6"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-white">Email Configuration</h2>
+                    <p class="text-xs text-slate-500 uppercase tracking-widest font-bold">SMTP Settings & Automation</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <!-- Configuration Form -->
+                <div class="space-y-5">
+                    <div class="flex items-center justify-between p-4 bg-slate-900/50 rounded-2xl border border-white/5 mb-6">
+                        <div>
+                            <span class="block text-sm font-bold text-white">Enable Automated Weekly Report</span>
+                            <span class="block text-[10px] text-slate-500 uppercase tracking-widest">Dispatches every Thursday at 1 PM</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="smtpEnabled" class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                        </label>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">SMTP Server</label>
+                        <input type="text" id="smtpServer" placeholder="smtp.gmail.com" class="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">SMTP Port</label>
+                        <input type="number" id="smtpPort" placeholder="587" class="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Email Username</label>
+                        <input type="email" id="smtpUser" placeholder="youremail@gmail.com" class="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">App Password</label>
+                        <input type="password" id="smtpPass" placeholder="••••••••••••••••" class="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                    </div>
+
+                    <div class="flex gap-4 pt-4">
+                        <button id="testSmtpBtn" onclick="testSmtpConnection()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-all border border-white/5 flex items-center justify-center gap-2">
+                            <i data-lucide="plug" class="w-4 h-4"></i> Test Connection
+                        </button>
+                        <button id="saveSmtpBtn" onclick="saveSmtpConfig()" class="flex-1 bg-green-600/20 hover:bg-green-600/30 text-green-400 font-bold py-3 rounded-xl transition-all border border-green-500/20 flex items-center justify-center gap-2">
+                            <i data-lucide="save" class="w-4 h-4"></i> Save Settings
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Instructions -->
+                <div class="p-6 bg-blue-500/5 rounded-3xl border border-blue-500/10">
+                    <h3 class="text-sm font-bold text-blue-400 mb-4 flex items-center gap-2">
+                        <i data-lucide="info" class="w-4 h-4"></i> SMTP Setup Guide
+                    </h3>
+                    <p class="text-xs text-slate-400 leading-relaxed mb-4">
+                        To enable email reporting, configure your mail provider's SMTP details. Modern providers usually require an <strong>App Password</strong> instead of your primary password.
+                    </p>
+                    <ol class="text-xs text-slate-400 space-y-3 list-decimal list-inside ml-2">
+                        <li>Locate your provider's SMTP settings (e.g., <code>smtp.gmail.com</code> for Google, <code>smtp.office365.com</code> for Microsoft).</li>
+                        <li>Ensure <strong>2-Step Verification (2FA)</strong> is enabled on your email account.</li>
+                        <li>Navigate to your account's security settings and generate a unique <strong>App Password</strong> or <strong>API Key</strong>.</li>
+                        <li>Enter the SMTP Server address and Port (commonly 587 for TLS).</li>
+                        <li>Input your email address as the Username and the generated App Password as the Password.</li>
+                        <li>Click <strong>Test Connection</strong> to verify settings before saving.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Modal -->
+    <div id="emailModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="glass p-8 rounded-[2rem] w-full max-w-lg border border-white/10 relative">
+            <button onclick="closeEmailModal()" class="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <h2 class="text-xl font-bold text-white mb-2">Send Report via Email</h2>
+            <p class="text-sm text-slate-400 mb-6">Select the users who should receive this report.</p>
+
+            <div class="mb-4 flex justify-end">
+                <button onclick="selectAllUsers()" class="text-xs font-bold text-blue-400 hover:text-blue-300 uppercase tracking-widest">Select All</button>
+            </div>
+
+            <div class="space-y-3 mb-8 max-h-64 overflow-y-auto custom-scrollbar pr-2">
+                {% for u in users %}
+                {% if u.status == 'approved' and u.email %}
+                <label class="flex items-center gap-4 p-4 bg-white/5 hover:bg-white/10 rounded-xl cursor-pointer transition-colors border border-white/5">
+                    <input type="checkbox" value="{{ u.id }}" class="user-email-cb w-4 h-4 rounded border-slate-600 text-blue-500 focus:ring-blue-500 bg-slate-900/50">
+                    <div>
+                        <span class="block text-sm font-bold text-white">{{ u.full_name }}</span>
+                        <span class="block text-[10px] font-black text-slate-500 uppercase tracking-widest">{{ u.role }}</span>
+                    </div>
+                </label>
+                {% endif %}
+                {% endfor %}
+            </div>
+
+            <button id="sendEmailBtn" onclick="submitEmail()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2">
+                <i data-lucide="mail" class="w-4 h-4"></i> Dispatch Report
+            </button>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // Load SMTP config on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const res = await fetch('/api/smtp/config');
+                const data = await res.json();
+                if (res.ok && data.config) {
+                    document.getElementById('smtpServer').value = data.config.server || '';
+                    document.getElementById('smtpPort').value = data.config.port || '587';
+                    document.getElementById('smtpUser').value = data.config.username || '';
+                    document.getElementById('smtpEnabled').checked = data.config.is_enabled || false;
+                }
+            } catch (e) {
+                console.error('Failed to load SMTP config', e);
+            }
+        });
+
+        async function testSmtpConnection() {
+            const btn = document.getElementById('testSmtpBtn');
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> Testing...';
+            btn.disabled = true;
+
+            const payload = {
+                server: document.getElementById('smtpServer').value,
+                port: document.getElementById('smtpPort').value,
+                username: document.getElementById('smtpUser').value,
+                password: document.getElementById('smtpPass').value
+            };
+
+            try {
+                const res = await fetch('/api/smtp/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                alert(data.message);
+            } catch (e) {
+                alert('Network error testing SMTP connection.');
+            } finally {
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+            }
+        }
+
+        async function saveSmtpConfig() {
+            const btn = document.getElementById('saveSmtpBtn');
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> Saving...';
+            btn.disabled = true;
+
+            const payload = {
+                server: document.getElementById('smtpServer').value,
+                port: document.getElementById('smtpPort').value,
+                username: document.getElementById('smtpUser').value,
+                password: document.getElementById('smtpPass').value,
+                is_enabled: document.getElementById('smtpEnabled').checked
+            };
+
+            try {
+                const res = await fetch('/api/smtp/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                alert(data.message);
+                if (res.ok) document.getElementById('smtpPass').value = ''; // clear password field on success
+            } catch (e) {
+                alert('Network error saving SMTP config.');
+            } finally {
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+            }
+        }
+
+        function openEmailModal() {
+            document.getElementById('emailModal').classList.remove('hidden');
+        }
+
+        function closeEmailModal() {
+            document.getElementById('emailModal').classList.add('hidden');
+        }
+
+        function selectAllUsers() {
+            document.querySelectorAll('.user-email-cb').forEach(cb => cb.checked = true);
+        }
+
+        async function submitEmail() {
+            const checkboxes = document.querySelectorAll('.user-email-cb:checked');
+            const userIds = Array.from(checkboxes).map(cb => cb.value);
+            
+            if (userIds.length === 0) {
+                alert("Please select at least one user.");
+                return;
+            }
+
+            const btn = document.getElementById('sendEmailBtn');
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> Sending...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/report/email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_ids: userIds })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    alert(data.message);
+                    closeEmailModal();
+                } else {
+                    alert("Error: " + data.message);
+                }
+            } catch (err) {
+                alert("Failed to send email. Check connection.");
+            } finally {
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+            }
+        }
+    </script>
+
+    
+
+<!-- Global Cascade Animation & Active Nav Link -->
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // 1. Navigation Active Link Highlight
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('nav a');
+        
+        navLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (!href) return;
+            
+            let isActive = false;
+            if (href === '/') {
+                if (currentPath === '/') isActive = true;
+            } else {
+                if (currentPath.startsWith(href)) isActive = true;
+            }
+            
+            if (isActive) {
+                link.classList.remove('text-slate-400');
+                link.classList.add('text-blue-400');
+                link.style.textShadow = '0 0 15px rgba(56, 189, 248, 0.8)';
+            }
+        });
+
+        
+    });
+    </script>
+</body>
+</html>

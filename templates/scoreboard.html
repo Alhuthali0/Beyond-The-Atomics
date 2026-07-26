@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scorecard | Beyond The Atomics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --glass-bg: rgba(15, 23, 42, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --neon-blue: #38bdf8;
+            --neon-purple: #818cf8;
+            --neon-green: #22c55e;
+            --neon-red: #ef4444;
+        }
+
+        body {
+            background-color: #020617;
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+        }
+
+        .terminal-font { font-family: 'Fira Code', monospace; }
+
+        /* Animation for entry */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-fade-in {
+            animation: fadeInUp 0.7s ease-out forwards;
+        }
+
+        /* Table custom styling */
+        .custom-table thead th {
+            letter-spacing: 0.05em;
+            font-weight: 700;
+            font-size: 0.7rem;
+        }
+
+        /* Scrollbar customization */
+    
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: -1;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(56, 189, 248, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(129, 140, 248, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 1) 0%, #020617 100%);
+        }
+
+        .blob {
+            position: fixed;
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(to right, var(--neon-blue), var(--neon-purple));
+            filter: blur(80px);
+            border-radius: 50%;
+            z-index: -1;
+            opacity: 0.2;
+            animation: float 20s infinite alternate;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            100% {
+                transform: translate(100px, 50px) scale(1.1);
+            }
+        }
+
+</style>
+<!-- FOUC Prevention & Animation Styles -->
+    <style>
+        @keyframes instantFade {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Apply instant simultaneous fade to all main elements, no delays, incredibly fast */
+        .glass:not(nav, nav .glass, #smart-tooltip), .ttp-card, .asset-card, tbody tr {
+            animation: instantFade 0.25s ease-out forwards;
+        }
+    </style>
+
+    <!-- Theme Engine -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="bg-overlay"></div>
+    <div class="blob" style="top: -100px; left: -100px;"></div>
+    <div class="blob" style="bottom: -100px; right: -100px; animation-delay: -5s;"></div>
+
+    
+    
+    
+
+    {% include 'nav.html' %}
+
+    <div class="max-w-7xl mx-auto space-y-8 animate-fade-in">
+        
+        <!-- Metrics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <!-- Overall Security Score -->
+            <div class="glass p-8 rounded-[2.5rem] relative overflow-hidden group hover:border-blue-500/30 transition-all">
+                <div class="absolute -top-4 -right-4 w-24 h-24 bg-blue-500/10 blur-3xl rounded-full"></div>
+                <h3 class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-6 block">Detection Integrity</h3>
+                <div class="flex items-baseline gap-2">
+                    <div class="text-6xl font-black tracking-tighter transition-colors
+                        {% if score >= 80 %}text-green-500{% elif score >= 50 %}text-yellow-500{% else %}text-red-500{% endif %}">
+                        {{ score }}%
+                    </div>
+                </div>
+                <div class="mt-6 h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                    <div class="h-full rounded-full transition-all duration-1000 
+                        {% if score >= 80 %}bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]{% elif score >= 50 %}bg-yellow-500{% else %}bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]{% endif %}"
+                        style="--score-pct: {{ score }}%; width: var(--score-pct);"></div>
+                </div>
+            </div>
+
+            <!-- Total Run -->
+            <div class="glass p-8 rounded-[2.5rem] relative overflow-hidden group hover:border-blue-500/30 transition-all">
+                <h3 class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-6 block">Simulations Run</h3>
+                <div class="flex items-center justify-between">
+                    <div class="text-6xl font-black text-blue-400 tracking-tighter">{{ total }}</div>
+                    <div class="p-4 bg-blue-500/10 rounded-3xl">
+                        <i data-lucide="play-circle" class="text-blue-400 w-10 h-10"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detections GAP -->
+            <div class="glass p-8 rounded-[2.5rem] relative overflow-hidden group hover:border-orange-500/30 transition-all">
+                <h3 class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-6 block">Detections GAP</h3>
+                <div class="flex items-center justify-between">
+                    <div class="text-6xl font-black text-orange-500 tracking-tighter">{{ detections_gap }}</div>
+                    <div class="p-4 bg-orange-500/10 rounded-3xl">
+                        <i data-lucide="eye-off" class="text-orange-500 w-10 h-10"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Threats Detected -->
+            <div class="glass p-8 rounded-[2.5rem] relative overflow-hidden group hover:border-green-500/30 transition-all">
+                <h3 class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-6 block">Threats Detected</h3>
+                <div class="flex items-center justify-between">
+                    <div class="text-6xl font-black text-green-500 tracking-tighter">{{ total - vulnerable }}</div>
+                    <div class="p-4 bg-green-500/10 rounded-3xl">
+                        <i data-lucide="shield-check" class="text-green-500 w-10 h-10"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Table Section -->
+        <div class="glass p-8 rounded-[2.5rem] relative overflow-hidden border-white/5">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-xl font-bold text-white flex items-center gap-3">
+                    <span class="p-2 bg-indigo-500/20 rounded-lg">
+                        <i data-lucide="history" class="text-indigo-400 w-5 h-5"></i>
+                    </span>
+                    Execution History
+                </h2>
+                <span class="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Telemetry Logging Active</span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left custom-table">
+                    <thead>
+                        <tr class="text-slate-500 uppercase border-b border-white/5">
+                            <th class="p-4 pl-6">Timestamp</th>
+                            <th class="p-4 text-center">Target Host</th>
+                            <th class="p-4">Technique</th>
+                            <th class="p-4 text-center">Run</th>
+                            <th class="p-4 text-center">Detected</th>
+                            <th class="p-4 text-center">Result</th>
+                            <th class="p-4 pr-6 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm">
+                        {% for r in results %}
+                        <tr class="group border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
+                            <td class="p-4 pl-6 whitespace-nowrap">
+                                <span class="text-slate-400 terminal-font text-xs">
+                                    {{ r.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                                </span>
+                            </td>
+                            <td class="p-4 text-center">
+                                <span class="bg-slate-900/60 border border-white/5 px-3 py-1 rounded-lg text-slate-300 terminal-font text-xs">
+                                    {{ r.target_hostname }}
+                                </span>
+                            </td>
+                            <td class="p-4">
+                                <div class="flex flex-col">
+                                    <span class="text-blue-400 font-bold">{{ r.ttp_id }}</span>
+                                    <span class="text-white text-[10px] font-bold">{{ r.test_name or "N/A" }}</span>
+                                    <span class="text-slate-500 text-[10px] uppercase font-medium">{{ r.ttp_name }}</span>
+                                </div>
+                            </td>
+                            <td class="p-4 text-center">
+                                {% if r.status_run %}
+                                    <i data-lucide="check-circle-2" class="w-5 h-5 text-blue-500 mx-auto"></i>
+                                {% else %}
+                                    <i data-lucide="circle" class="w-5 h-5 text-slate-700 mx-auto"></i>
+                                {% endif %}
+                            </td>
+                            <td class="p-4 text-center">
+                                {% if 'n/a' in (r.status or 'Unknown').lower() %}
+                                    <span class="text-[9px] text-slate-500 font-bold uppercase">N/A</span>
+                                {% elif r.status_detected %}
+                                    <i data-lucide="shield-check" class="w-5 h-5 text-green-500 mx-auto"></i>
+                                {% else %}
+                                    <i data-lucide="shield-alert" class="w-5 h-5 text-orange-500 mx-auto"></i>
+                                {% endif %}
+                            </td>
+                            <td class="p-4 text-center">
+                                {% set stat_low = (r.status or 'Unknown').lower() %}
+                                {% if 'n/a' in stat_low %}
+                                    <span class="inline-flex items-center gap-1.5 bg-slate-500/10 text-slate-500 px-3 py-1 rounded-full border border-slate-500/20 text-[10px] font-black uppercase tracking-wider">
+                                        N/A
+                                    </span>
+                                {% elif r.status_detected %}
+                                    <span class="inline-flex items-center gap-1.5 bg-green-500/10 text-green-500 px-3 py-1 rounded-full border border-green-500/20 text-[10px] font-black uppercase tracking-wider">
+                                        ALERTED
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center gap-1.5 bg-orange-500/10 text-orange-500 px-3 py-1 rounded-full border border-orange-500/20 text-[10px] font-black uppercase tracking-wider">
+                                        GAP
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="p-4 pr-6 text-right">
+                                <div class="flex justify-end gap-2">
+                                    <a href="/telemetry/{{ r.id }}" class="px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-lg text-blue-400 transition-all group/btn flex items-center gap-2 text-xs font-bold" title="View Execution Logs">
+                                        <i data-lucide="file-text" class="w-3.5 h-3.5"></i> Log
+                                    </a>
+                                    <a href="/remediation/{{ r.ttp_id }}" class="px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 rounded-lg text-purple-400 transition-all group/btn flex items-center gap-2 text-xs font-bold" title="View Mitigations">
+                                        <i data-lucide="shield-plus" class="w-3.5 h-3.5"></i> Mitigations
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+                {% if not results %}
+                <div class="py-20 text-center flex flex-col items-center">
+                    <div class="p-6 bg-slate-800/40 rounded-full mb-4">
+                        <i data-lucide="database-zap" class="text-slate-600 w-12 h-12"></i>
+                    </div>
+                    <h3 class="text-slate-400 font-bold uppercase tracking-widest text-xs">No simulation logs found</h3>
+                    <p class="text-slate-600 text-[10px] mt-2">Run an intelligent cycle to populate the scorecard.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <footer class="max-w-7xl mx-auto mt-12 pb-10 text-center">
+        <p class="text-[10px] text-slate-600 font-black uppercase tracking-widest">Beyond The Atomics v1.5 | Advanced Posture Analytics</p>
+    </footer>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+    </script>
+
+    
+
+<!-- Global Cascade Animation & Active Nav Link -->
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // 1. Navigation Active Link Highlight
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('nav a');
+        
+        navLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (!href) return;
+            
+            let isActive = false;
+            if (href === '/') {
+                if (currentPath === '/') isActive = true;
+            } else {
+                if (currentPath.startsWith(href)) isActive = true;
+            }
+            
+            if (isActive) {
+                link.classList.remove('text-slate-400');
+                link.classList.add('text-blue-400');
+                link.style.textShadow = '0 0 15px rgba(56, 189, 248, 0.8)';
+            }
+        });
+
+        
+    });
+    </script>
+</body>
+</html>

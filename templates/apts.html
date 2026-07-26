@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Threat Groups | Beyond the Atomics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root { --glass-bg: rgba(15, 23, 42, 0.8); --glass-border: rgba(255, 255, 255, 0.1); }
+        body { background: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; min-height: 100vh; }
+        .glass { background: var(--glass-bg); backdrop-filter: blur(12px); border: 1px solid var(--glass-border); }
+        .group-card:hover { border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.05); }
+        .matrix-cell { width: 100%; min-height: 35px; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 6px; padding: 4px; font-size: 8px; font-weight: bold; transition: all 0.3s; }
+        .matrix-cell.active { background: rgba(239, 68, 68, 0.25); border-color: rgba(239, 68, 68, 0.4); color: #f87171; box-shadow: 0 0 10px rgba(239,68,68,0.2); }
+    
+        
+
+        
+
+        
+
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: -1;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(56, 189, 248, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(129, 140, 248, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 1) 0%, #020617 100%);
+        }
+
+        .blob {
+            position: fixed;
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(to right, var(--neon-blue), var(--neon-purple));
+            filter: blur(80px);
+            border-radius: 50%;
+            z-index: -1;
+            opacity: 0.2;
+            animation: float 20s infinite alternate;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            100% {
+                transform: translate(100px, 50px) scale(1.1);
+            }
+        }
+
+</style>
+<!-- FOUC Prevention & Animation Styles -->
+    <style>
+        @keyframes instantFade {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Apply instant simultaneous fade to all main elements, no delays, incredibly fast */
+        .glass:not(nav, nav .glass, #smart-tooltip, .group-card), .ttp-card, .asset-card, tbody tr {
+            animation: instantFade 0.25s ease-out forwards;
+        }
+    
+        .animate-scroll-reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease-out;
+        }
+        .animate-scroll-reveal.visible {
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+        }
+</style>
+
+    <!-- Theme Engine -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="bg-overlay"></div>
+    <div class="blob" style="top: -100px; left: -100px;"></div>
+    <div class="blob" style="bottom: -100px; right: -100px; animation-delay: -5s;"></div>
+
+    
+    
+    
+
+    {% include 'nav.html' %}
+    
+    <div class="max-w-7xl mx-auto pb-12">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
+            <div class="flex items-center gap-4">
+                <div class="p-3 bg-red-500/10 rounded-2xl">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-400 w-8 h-8"><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><path d="M8 20v2h8v-2"/><path d="m12.5 17-.5-1-.5 1h1z"/><path d="M16 20a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20"/></svg>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-black text-white">Threat Groups</h1>
+                    <p class="text-xs text-slate-500 uppercase tracking-widest font-bold">Adversary Intelligence & Mapping</p>
+                </div>
+            </div>
+            <div class="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+                <div class="relative group w-full md:w-auto">
+                    <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"></i>
+                    <input type="text" id="groupSearch" placeholder="Search Groups..." 
+                        class="bg-slate-900/50 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm focus:ring-2 focus:ring-red-500 outline-none w-full md:w-64 transition-all focus:md:w-80 text-white">
+                </div>
+                <button onclick="document.getElementById('customGroupModal').style.display='flex'" 
+                    class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold py-3 px-8 rounded-2xl transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2 w-full md:w-auto justify-center">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i> Create Threat Profile
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 transition-all duration-500" id="mainContainer">
+            <!-- Group List -->
+<div id="groupListContainer" class="lg:col-span-12 transition-all duration-500">
+    <div id="groupGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 transition-all duration-500">
+        {% for group in groups %}
+        <div class="group-card-clickable group-card glass p-6 rounded-3xl border border-white/5 transition-all cursor-pointer group flex flex-col h-full" style="opacity: 0;" 
+             data-name="{{ group.name }}"
+             data-aliases="{{ group.aliases | tojson | forceescape }}"
+             data-desc="{{ group.description }}"
+             data-ttps="{{ group.ttps | tojson | forceescape }}">
+            
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-xl font-bold group-hover:text-red-400 transition-colors">{{ group.name }}</h3>
+                <i data-lucide="map" class="w-5 h-5 text-slate-600 group-hover:text-blue-400 transition-all"></i>
+            </div>
+            <p class="text-xs text-slate-500 leading-relaxed mb-6 line-clamp-3 flex-grow">{{ group.description }}</p>
+            
+            <div class="grid grid-cols-2 gap-3 mt-auto pt-4 border-t border-white/5">
+                <button class="run-task-btn flex items-center justify-center gap-2 py-2.5 bg-red-600/10 text-red-400 border border-red-500/20 rounded-xl text-[10px] font-black uppercase hover:bg-red-600 hover:text-white transition-all">
+                    <i data-lucide="zap" class="w-3.5 h-3.5"></i> Run
+                </button>
+                
+                <button class="schedule-task-btn flex items-center justify-center gap-2 py-2.5 bg-blue-600/10 text-blue-400 border border-blue-500/20 rounded-xl text-[10px] font-black uppercase hover:bg-blue-600 hover:text-white transition-all">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i> Schedule
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+            <!-- Group Details View -->
+            <div id="groupDetailsContainer" class="lg:col-span-8 hidden transition-all duration-500 opacity-0 transform translate-x-4">
+                <div class="glass p-8 rounded-[3rem] h-full min-h-[600px] flex flex-col relative border border-white/5">
+                    <div id="groupDetailsPlaceholder" class="flex-grow flex flex-col items-center justify-center text-center opacity-40">
+                        <i data-lucide="users" class="w-20 h-20 text-slate-700 mb-4"></i>
+                        <p class="text-slate-500 font-medium">Select a threat group to view their profile and mapped techniques.</p>
+                    </div>
+
+                    <div id="groupDetailsContent" class="hidden flex-col h-full">
+                        <div class="mb-6 pb-6 border-b border-white/5">
+                            <h2 id="detailGroupName" class="text-3xl font-black text-white mb-2"></h2>
+                            <div id="detailGroupAliases" class="flex flex-wrap gap-2 mb-4"></div>
+                            <p id="detailGroupDesc" class="text-sm text-slate-400 leading-relaxed custom-scrollbar max-h-40 overflow-y-auto pr-2"></p>
+                        </div>
+                        
+                        <div class="flex-grow flex flex-col">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg font-bold flex items-center gap-2">
+                                    <i data-lucide="crosshair" class="text-red-400 w-5 h-5"></i> Mapped Techniques
+                                </h3>
+                                <span id="detailTTPCount" class="text-xs font-bold text-slate-500 uppercase tracking-widest"></span>
+                            </div>
+                            
+                            <div id="detailTTPGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3 overflow-y-auto pr-2 custom-scrollbar max-h-[400px]">
+                                <!-- TTPs injected by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Tasking Modal -->
+    <div id="bulkTaskModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+        <div class="glass max-w-xl w-full p-10 rounded-[3rem] border-white/10 relative">
+            <button onclick="closeBulkModal()" class="absolute top-8 right-8 text-slate-400 hover:text-white transition-colors">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+            <h2 id="bulkGroupName" class="text-2xl font-black text-white mb-2"></h2>
+            <p id="bulkActionLabel" class="text-blue-400 text-[10px] font-black uppercase tracking-[0.2em] mb-8"></p>
+
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1">Target Agent</label>
+                    <select id="bulkAgentSelect" class="w-full bg-slate-900 border border-white/10 rounded-2xl px-6 py-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                        <option value="">Loading agents...</option>
+                    </select>
+                </div>
+
+                <div id="bulkScheduleFields" class="hidden space-y-6">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1">Start Date</label>
+                        <input type="date" id="bulkDate" class="w-full bg-slate-900 border border-white/10 rounded-2xl px-6 py-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 ml-1">Start Time (5-min slots)</label>
+                        <div id="bulkTimeGrid" class="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar p-1"></div>
+                    </div>
+                </div>
+
+                <button id="bulkSubmitBtn" onclick="executeBulkTask()" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-5 rounded-2xl transition-all shadow-xl shadow-red-500/20 flex items-center justify-center gap-3">
+                    <i data-lucide="zap" class="w-5 h-5"></i>
+                    <span id="bulkSubmitText">Confirm Execution</span>
+                </button>
+                <p class="text-[9px] text-slate-600 text-center uppercase font-bold tracking-widest">
+                    Internal logic will automatically skip techniques unsupported by the target OS.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Group Modal -->
+    <div id="customGroupModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
+        <div class="glass max-w-4xl w-full p-10 rounded-[3rem] border-white/10 relative">
+            <button onclick="document.getElementById('customGroupModal').style.display='none'" class="absolute top-8 right-8 text-slate-400 hover:text-white transition-colors">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+            <h2 class="text-2xl font-black text-white mb-8">Build Custom Threat Profile</h2>
+            <form action="/apts" method="POST" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Profile Name</label>
+                        <input type="text" name="name" required placeholder="Project-X / Ransomware-C"
+                               class="w-full bg-slate-900 border border-white/10 rounded-2xl px-6 py-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Description</label>
+                        <textarea name="description" placeholder="Adversary motivations and behavior..."
+                                  class="w-full bg-slate-900 border border-white/10 rounded-2xl px-6 py-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none h-40"></textarea>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-5 rounded-2xl transition-all shadow-2xl shadow-blue-500/30">
+                        Create Intelligence Profile
+                    </button>
+                </div>
+
+                <div class="flex flex-col h-full">
+                    <label class="block text-[10px] font-black text-slate-500 uppercase mb-2 ml-1">Select TTPs</label>
+                    <div class="relative mb-4">
+                        <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"></i>
+                        <input type="text" id="ttpListSearch" placeholder="Filter techniques..." 
+                               class="w-full bg-black/30 border border-white/5 rounded-xl py-3 pl-12 pr-4 text-xs focus:ring-1 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div id="ttpCheckboxList" class="flex-grow bg-slate-900/50 border border-white/10 rounded-2xl p-4 overflow-y-auto max-h-[400px] custom-scrollbar space-y-2">
+                        {% for ttp in all_ttps %}
+                        <label class="ttp-check-item flex items-center gap-3 p-3 rounded-xl border border-white/5 hover:bg-white/5 cursor-pointer transition-colors" data-search="{{ ttp.id }} {{ ttp.name }}">
+                            <input type="checkbox" name="ttps" value="{{ ttp.id }}" class="w-4 h-4 rounded bg-slate-800 border-white/20 text-blue-600 focus:ring-blue-500 focus:ring-offset-0">
+                            <div class="flex flex-col">
+                                <span class="text-[10px] font-black text-blue-400 leading-none mb-1">{{ ttp.id }}</span>
+                                <span class="text-xs text-slate-300 font-medium">{{ ttp.name }}</span>
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        let activeAgents = [];
+        let existingSchedules = [];
+        let selectedGroupData = { name: "", ttps: [], mode: "run" };
+
+        async function initData() {
+            const [agentsRes, schRes] = await Promise.all([
+                fetch('/api/assets/active'),
+                fetch('/api/schedule/all')
+            ]);
+            activeAgents = await agentsRes.json();
+            existingSchedules = await schRes.json();
+            
+            const select = document.getElementById('bulkAgentSelect');
+            select.innerHTML = '<option value="">-- Choose Target Agent --</option>';
+            activeAgents.forEach(a => {
+                select.innerHTML += `<option value="${a.hostname}">${a.hostname} (${a.os})</option>`;
+            });
+        }
+        initData();
+
+        // Threat Group Search
+        document.getElementById('groupSearch').addEventListener('input', (e) => {
+            const val = e.target.value.toLowerCase();
+            const cards = document.querySelectorAll('#groupGrid .group-card');
+            
+            cards.forEach(card => {
+                const name = card.querySelector('h3').innerText.toLowerCase();
+                const desc = card.querySelector('p').innerText.toLowerCase();
+                
+                // If it's a match, show it. Otherwise, hide it.
+                if (name.includes(val) || desc.includes(val)) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+
+        // Custom Profile TTP Search
+        document.getElementById('ttpListSearch').addEventListener('input', (e) => {
+            const val = e.target.value.toLowerCase();
+            document.querySelectorAll('.ttp-check-item').forEach(item => {
+                item.style.display = item.dataset.search.toLowerCase().includes(val) ? 'flex' : 'none';
+            });
+        });
+
+        let activeGroupCard = null;
+
+        function viewGroupDetails(element, name, aliases, desc, ttps) {
+            const listContainer = document.getElementById('groupListContainer');
+            const detailsContainer = document.getElementById('groupDetailsContainer');
+            const grid = document.getElementById('groupGrid');
+
+            if (activeGroupCard === element) {
+                // Deselect
+                activeGroupCard.classList.remove('ring-2', 'ring-red-500');
+                activeGroupCard = null;
+                
+                listContainer.className = 'lg:col-span-12 transition-all duration-500';
+                grid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 transition-all duration-500';
+                
+                detailsContainer.classList.add('opacity-0', 'translate-x-4');
+                setTimeout(() => {
+                    detailsContainer.classList.add('hidden');
+                    detailsContainer.classList.remove('lg:col-span-8');
+                }, 300);
+                return;
+            }
+
+            if (activeGroupCard) {
+                activeGroupCard.classList.remove('ring-2', 'ring-red-500');
+            }
+            activeGroupCard = element;
+            activeGroupCard.classList.add('ring-2', 'ring-red-500');
+
+            listContainer.className = 'lg:col-span-4 transition-all duration-500 max-h-[800px] overflow-y-auto custom-scrollbar pr-2';
+            grid.className = 'grid grid-cols-1 gap-4 transition-all duration-500';
+            
+            detailsContainer.classList.remove('hidden');
+            detailsContainer.classList.add('lg:col-span-8');
+            setTimeout(() => {
+                detailsContainer.classList.remove('opacity-0', 'translate-x-4');
+            }, 50);
+
+            document.getElementById('groupDetailsPlaceholder').classList.add('hidden');
+            document.getElementById('groupDetailsContent').classList.remove('hidden');
+            document.getElementById('detailGroupName').innerText = name;
+            document.getElementById('detailGroupDesc').innerHTML = desc.replace(/\n/g, '<br>');
+            document.getElementById('detailTTPCount').innerText = `${ttps.length} Documented Techniques`;
+            
+            const aliasContainer = document.getElementById('detailGroupAliases');
+            aliasContainer.innerHTML = '';
+            if (aliases && aliases.length > 0) {
+                aliases.forEach(a => {
+                    if (a.trim() && a.trim() !== name) {
+                        const span = document.createElement('span');
+                        span.className = 'px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-bold text-slate-400 tracking-widest uppercase';
+                        span.innerText = a.trim();
+                        aliasContainer.appendChild(span);
+                    }
+                });
+            }
+
+            const ttpGrid = document.getElementById('detailTTPGrid');
+            ttpGrid.innerHTML = '';
+            
+            // Map plain strings back to object if from bulk execute (which only tracks ids)
+            let formattedTtps = ttps;
+            if (ttps.length > 0 && typeof ttps[0] === 'string') {
+                formattedTtps = ttps.map(id => ({id: id, name: id}));
+            }
+            
+            formattedTtps.forEach(ttp => {
+                const card = document.createElement('div');
+                card.className = 'bg-white/5 p-4 rounded-2xl border border-white/5 flex flex-col gap-2 hover:bg-white/10 hover:border-red-500/30 transition-all cursor-pointer group/card';
+                card.onclick = () => window.location.href = `/ttps`; // Simplified routing for now
+                
+                card.innerHTML = `
+                    <span class="text-[10px] font-black text-red-400 uppercase tracking-widest group-hover/card:text-red-300 transition-colors">${ttp.id}</span>
+                    <span class="text-sm font-bold text-slate-200 leading-tight">${ttp.name}</span>
+                `;
+                ttpGrid.appendChild(card);
+            });
+            
+            setTimeout(() => {
+                element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 300);
+        }
+
+        function openBulkTaskModal(name, ttps, mode) {
+            selectedGroupData = { name, ttps, mode };
+            document.getElementById('bulkGroupName').innerText = name;
+            document.getElementById('bulkActionLabel').innerText = mode === 'run' ? 'Mass Execution' : 'Intelligent Strategic Planning';
+            document.getElementById('bulkSubmitText').innerText = mode === 'run' ? 'Dispatch Techniques' : 'Schedule Emulation';
+            document.getElementById('bulkSubmitBtn').className = mode === 'run' ? 
+                "w-full bg-red-600 hover:bg-red-500 text-white font-bold py-5 rounded-2xl transition-all shadow-xl shadow-red-500/20 flex items-center justify-center gap-3" :
+                "w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-5 rounded-2xl transition-all shadow-xl shadow-red-500/20 flex items-center justify-center gap-3";
+            
+            const schFields = document.getElementById('bulkScheduleFields');
+            if (mode === 'schedule') {
+                schFields.classList.remove('hidden');
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('bulkDate').value = today;
+                generateBulkTimeGrid(today);
+            } else {
+                schFields.classList.add('hidden');
+            }
+
+            document.getElementById('bulkTaskModal').classList.replace('hidden', 'flex');
+            lucide.createIcons();
+        }
+
+        function closeBulkModal() {
+            document.getElementById('bulkTaskModal').classList.replace('flex', 'hidden');
+        }
+
+        function generateBulkTimeGrid(date) {
+            const container = document.getElementById('bulkTimeGrid');
+            container.innerHTML = '';
+            for (let h=0; h<24; h++) {
+                for (let m=0; m<60; m+=5) {
+                    const t = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                    const res = existingSchedules.some(s => s.date === date && s.time === t);
+                    const btn = document.createElement('button');
+                    btn.className = `p-2 text-[10px] font-bold rounded-lg ${res ? 'bg-red-500/20 text-red-500 cursor-not-allowed' : 'bg-slate-900 border border-white/5 hover:bg-blue-600'}`;
+                    btn.innerText = t;
+                    if(!res) {
+                        btn.onclick = () => {
+                            document.querySelectorAll('#bulkTimeGrid button').forEach(b => b.classList.remove('ring-2', 'ring-blue-500'));
+                            btn.classList.add('ring-2', 'ring-blue-500');
+                            btn.dataset.selected = "true";
+                        };
+                    }
+                    container.appendChild(btn);
+                }
+            }
+        }
+
+        document.getElementById('bulkDate').onchange = (e) => generateBulkTimeGrid(e.target.value);
+
+        async function executeBulkTask() {
+            const host = document.getElementById('bulkAgentSelect').value;
+            if(!host) return alert("Select an agent.");
+
+            if (selectedGroupData.mode === 'run') {
+                alert(`Executing ${selectedGroupData.ttps.length} techniques on ${host}. Check scoreboard for real-time logs.`);
+                // Immediate bulk run
+                const res = await fetch('/api/schedule/bulk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        hostname: host,
+                        ttps: selectedGroupData.ttps,
+                        date: new Date().toISOString().split('T')[0],
+                        start_time: new Date().toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'})
+                    })
+                });
+                if (res.ok) window.location.href = '/scheduling';
+            } else {
+                const date = document.getElementById('bulkDate').value;
+                const timeBtn = document.querySelector('#bulkTimeGrid button[data-selected="true"]');
+                if(!timeBtn) return alert("Select start time.");
+                
+                const res = await fetch('/api/schedule/bulk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        hostname: host,
+                        ttps: selectedGroupData.ttps,
+                        date: date,
+                        start_time: timeBtn.innerText
+                    })
+                });
+                if (res.ok) {
+                    alert("Group emulation scheduled successfully!");
+                    window.location.href = '/scheduling';
+                }
+            }
+        }
+    </script>
+
+    
+
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry, index) => {
+                if (entry.isIntersecting) {
+                    setTimeout(() => {
+                        entry.target.classList.add('visible');
+                    }, index * 50);
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.05, rootMargin: '50px' });
+
+        document.querySelectorAll('.group-card').forEach(card => {
+            card.classList.add('animate-scroll-reveal');
+            observer.observe(card);
+        });
+    });
+    </script>
+
+<!-- Global Cascade Animation & Active Nav Link -->
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // 1. Navigation Active Link Highlight
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('nav a');
+        
+        navLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (!href) return;
+            
+            let isActive = false;
+            if (href === '/') {
+                if (currentPath === '/') isActive = true;
+            } else {
+                if (currentPath.startsWith(href)) isActive = true;
+            }
+            
+            if (isActive) {
+                link.classList.remove('text-slate-400');
+                link.classList.add('text-blue-400');
+                link.style.textShadow = '0 0 15px rgba(56, 189, 248, 0.8)';
+            }
+        });
+
+        
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+    
+    // Handle clicking the entire card
+    document.querySelectorAll('.group-card-clickable').forEach(card => {
+        card.addEventListener('click', function() {
+            const name = this.dataset.name;
+            const aliases = JSON.parse(this.dataset.aliases || '[]');
+            const desc = this.dataset.desc;
+            const ttps = JSON.parse(this.dataset.ttps || '[]');
+            
+            viewGroupDetails(this, name, aliases, desc, ttps);
+        });
+    });
+
+    // Handle clicking the Run button
+    document.querySelectorAll('.run-task-btn').forEach(button => {
+        button.addEventListener('click', function(event) {
+            event.stopPropagation(); // Stops the card click from firing
+            const card = this.closest('.group-card-clickable');
+            const name = card.dataset.name;
+            const ttps = JSON.parse(card.dataset.ttps || '[]');
+            
+            openBulkTaskModal(name, ttps, 'run');
+        });
+    });
+
+    // Handle clicking the Schedule button
+    document.querySelectorAll('.schedule-task-btn').forEach(button => {
+        button.addEventListener('click', function(event) {
+            event.stopPropagation(); // Stops the card click from firing
+            const card = this.closest('.group-card-clickable');
+            const name = card.dataset.name;
+            const ttps = JSON.parse(card.dataset.ttps || '[]');
+            
+            openBulkTaskModal(name, ttps, 'schedule');
+        });
+    });
+
+});
+    </script>
+</body>
+</html>

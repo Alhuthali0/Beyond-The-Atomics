@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register | Beyond The Atomics Framework</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --glass-bg: rgba(15, 23, 42, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --neon-blue: #38bdf8;
+            --neon-purple: #818cf8;
+        }
+
+        body {
+            background-color: #020617;
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        
+        
+
+        
+
+        
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+        }
+
+        .input-glow:focus {
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.15);
+            border-color: rgba(56, 189, 248, 0.4);
+        }
+
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .animate-signup {
+            animation: fadeInScale 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* Custom scrollbar for selects if needed */
+        select option { background: #1e293b; color: white; }
+    
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: -1;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(56, 189, 248, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(129, 140, 248, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 1) 0%, #020617 100%);
+        }
+
+        .blob {
+            position: fixed;
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(to right, var(--neon-blue), var(--neon-purple));
+            filter: blur(80px);
+            border-radius: 50%;
+            z-index: -1;
+            opacity: 0.2;
+            animation: float 20s infinite alternate;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            100% {
+                transform: translate(100px, 50px) scale(1.1);
+            }
+        }
+
+
+
+</style>
+<!-- FOUC Prevention & Animation Styles -->
+    <style>
+        @keyframes instantFade {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Apply instant simultaneous fade to all main elements, no delays, incredibly fast */
+        .glass:not(nav, nav .glass, #smart-tooltip), .ttp-card, .asset-card, tbody tr {
+            animation: instantFade 0.25s ease-out forwards;
+        }
+    </style>
+
+    <!-- Theme Engine -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+</head>
+<body>
+    <!-- Theme Toggle -->
+    <button id="theme-toggle" class="absolute top-4 right-4 z-50 p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all glass" title="Toggle Theme">
+        <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+        <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+    </button>
+
+    <div class="bg-overlay"></div>
+    <div class="blob" style="top: -100px; left: -100px;"></div>
+    <div class="blob" style="bottom: -100px; right: -100px; animation-delay: -5s;"></div>
+
+    
+    
+    
+
+    <div class="animate-signup w-full max-w-[500px] p-4">
+        <div class="glass p-10 rounded-[2.5rem] relative overflow-hidden group border-white/10">
+            <!-- Top accent light -->
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-40"></div>
+            
+            <div class="mb-8 flex flex-col items-center text-center">
+                <div class="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-5 border border-blue-500/20 shadow-inner">
+                    <img src="{{ url_for('static', filename='logo.png') }}" 
+                         alt="Framework Logo" 
+                         onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='flex';"
+                         class="h-10 w-auto drop-shadow-md">
+                    <div id="logo-fallback" class="hidden items-center justify-center">
+                        <i data-lucide="user-plus" class="w-8 h-8 text-blue-400"></i>
+                    </div>
+                </div>
+                <h1 class="text-white text-3xl font-black tracking-tight mb-2">Create Account</h1>
+                <p class="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em]">Register for Threat Emulation portal</p>
+            </div>
+            
+            <!-- Flask Flash Messages -->
+            {% with messages = get_flashed_messages(category_filter=["error"]) %}
+              {% if messages %}
+                <div class="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-4 mb-6 rounded-2xl flex items-center gap-3 animate-pulse">
+                  <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                  {{ messages[0] }}
+                </div>
+              {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="/signup" class="space-y-5">
+                <!-- Full Name -->
+                <div class="group">
+                    <label class="text-slate-400 text-[10px] font-black uppercase tracking-widest block mb-2 ml-1">Full Name</label>
+                    <div class="relative">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors">
+                            <i data-lucide="id-card" class="w-4 h-4"></i>
+                        </span>
+                        <input type="text" name="full_name" required placeholder="John Doe" 
+                               class="w-full bg-black/30 border border-white/5 rounded-2xl py-3 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none transition-all input-glow">
+                    </div>
+                </div>
+                
+                <!-- Email -->
+                <div class="group">
+                    <label class="text-slate-400 text-[10px] font-black uppercase tracking-widest block mb-2 ml-1">Corporate Email</label>
+                    <div class="relative">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors">
+                            <i data-lucide="mail" class="w-4 h-4"></i>
+                        </span>
+                        <input type="email" name="email" required placeholder="name@company.com" 
+                               class="w-full bg-black/30 border border-white/5 rounded-2xl py-3 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none transition-all input-glow">
+                    </div>
+                </div>
+
+                <!-- Username -->
+                <div class="group">
+                    <label class="text-slate-400 text-[10px] font-black uppercase tracking-widest block mb-2 ml-1">Username</label>
+                    <div class="relative">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors">
+                            <i data-lucide="user" class="w-4 h-4"></i>
+                        </span>
+                        <input type="text" name="username" required placeholder="j.doe"
+                               class="w-full bg-black/30 border border-white/5 rounded-2xl py-3 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none transition-all input-glow">
+                    </div>
+                </div>
+
+                <!-- Password -->
+                <div class="group">
+                    <label class="text-slate-400 text-[10px] font-black uppercase tracking-widest block mb-2 ml-1">Secure Password</label>
+                    <div class="relative">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors">
+                            <i data-lucide="lock" class="w-4 h-4"></i>
+                        </span>
+                        <input type="password" name="password" required placeholder="••••••••"
+                               class="w-full bg-black/30 border border-white/5 rounded-2xl py-3 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none transition-all input-glow">
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="w-full group relative bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-2xl transition-all duration-300 shadow-2xl shadow-blue-500/20 flex items-center justify-center gap-3 overflow-hidden active:scale-[0.98] mt-4">
+                    <div class="absolute inset-0 bg-gradient-to-r from-blue-400 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <span class="relative z-10">Register Account</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform"></i>
+                </button>
+            </form>
+            
+            <div class="text-center mt-8 pt-6 border-t border-white/5">
+                <a href="/login" class="text-slate-500 text-xs font-medium hover:text-white transition-colors flex items-center justify-center gap-2">
+                    Already have an account? <span class="text-blue-400 font-bold">Sign in here</span>
+                </a>
+            </div>
+        </div>
+        
+        <p class="text-center text-slate-600 text-[10px] mt-6 uppercase tracking-[0.3em] font-bold">
+            Authorized Personnel Only | System ID: 0xFF92
+        </p>
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+    </script>
+
+    
+
+<!-- Global Cascade Animation & Active Nav Link -->
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // 1. Navigation Active Link Highlight
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('nav a');
+        
+        navLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (!href) return;
+            
+            let isActive = false;
+            if (href === '/') {
+                if (currentPath === '/') isActive = true;
+            } else {
+                if (currentPath.startsWith(href)) isActive = true;
+            }
+            
+            if (isActive) {
+                link.classList.remove('text-slate-400');
+                link.classList.add('text-blue-400');
+                link.style.textShadow = '0 0 15px rgba(56, 189, 248, 0.8)';
+            }
+        });
+
+        
+    });
+    </script>
+</body>
+</html>

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Weekly Security Exposure Report</title>
+    <style>
+        /* PDF Page Setup */
+        @page {
+            size: A4;
+            margin: 1.5cm;
+        }
+
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            color: #1e293b;
+            line-height: 1.5;
+            background-color: #ffffff;
+            font-size: 12px;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* -------------------------------------------------------------
+           1. COVER PAGE STYLES
+           ------------------------------------------------------------- */
+.cover-page {
+            text-align: center;
+            padding-top: 50px; /* Reduced to stop overflow */
+        }
+        .cover-title {
+            font-size: 36px;
+            font-weight: bold;
+            color: #0f172a;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+.cover-subtitle {
+            font-size: 16px;
+            color: #0284c7;
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+            text-align: center; /* Explicitly force centering */
+            width: 100%;        /* Ensure the block spans the full width */
+            display: block;     /* Force block rendering for xhtml2pdf */
+        }
+        .cover-meta {
+            font-size: 14px;
+            color: #64748b;
+            margin-top: 30px;
+            border-top: 2px solid #e2e8f0;
+            padding-top: 20px;
+            width: 60%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .confidential-badge {
+            background-color: #dc2626;
+            color: #ffffff;
+            font-weight: bold;
+            letter-spacing: 2px;
+            padding: 8px;
+            /* Forced width to stop xhtml2pdf from making it massive */
+            width: 250px; 
+            margin: 30px auto; 
+        }
+
+        /* -------------------------------------------------------------
+           2. GLOBAL & SECTION STYLES
+           ------------------------------------------------------------- */
+        .section-header {
+            background-color: #0f172a;
+            color: #ffffff;
+            padding: 12px 16px;
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-left: 6px solid #0284c7;
+        }
+
+        /* Layout Tables (PDF Safe side-by-side) */
+        table.layout-table {
+            width: 100%;
+            border: none;
+            padding: 0;
+            margin-bottom: 20px;
+        }
+        table.layout-table td {
+            border: none;
+            vertical-align: top;
+            padding: 0 10px;
+        }
+
+        /* Stat Boxes */
+        .stat-box {
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-top: 4px solid #0284c7;
+            text-align: center;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #0f172a;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            font-size: 10px;
+            color: #475569;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        /* -------------------------------------------------------------
+           3. DATA TABLES (Intel & Detailed Analysis)
+           ------------------------------------------------------------- */
+        table.data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table.data-table th {
+            background-color: #e2e8f0;
+            color: #0f172a;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 11px;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            text-align: left;
+        }
+        table.data-table td {
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            font-size: 12px;
+            vertical-align: top;
+        }
+        .zebra-row {
+            background-color: #f8fafc;
+        }
+
+        /* Status Pills */
+        .status {
+            padding: 4px 8px;
+            font-weight: bold;
+            font-size: 10px;
+            text-transform: uppercase;
+            border-radius: 3px;
+            color: #ffffff;
+            display: inline-block;
+        }
+        .status-gap, .status-failed, .status-vulnerable { background-color: #dc2626; }
+        .status-prevented, .status-blocked, .status-alerted { background-color: #16a34a; }
+        .status-detected, .status-warning { background-color: #d97706; }
+
+        .ttp-badge {
+            background-color: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            padding: 2px 6px;
+            font-family: Courier, monospace;
+            font-size: 10px;
+            margin-right: 4px;
+            display: inline-block;
+        }
+
+        /* Audit Table specifically for the detailed analysis */
+        table.audit-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+        }
+        table.audit-table th {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            font-size: 11px;
+            padding: 8px;
+            border: 1px solid #cbd5e1;
+            text-align: left;
+            width: 15%;
+        }
+        table.audit-table td {
+            padding: 8px;
+            border: 1px solid #cbd5e1;
+            font-size: 11px;
+            vertical-align: middle;
+        }
+        .audit-header {
+            background-color: #1e293b !important;
+            color: #ffffff !important;
+            font-size: 14px !important;
+            padding: 10px !important;
+        }
+        .audit-subheader {
+            font-weight: bold;
+            color: #0f172a;
+            background-color: #f8fafc;
+        }
+    </style>
+</head>
+<body>
+
+<div class="cover-page">
+        <img src="static/logo.png" style="height: 180px; width: auto; margin-bottom: 20px;" alt="Tool Logo">
+        
+        <div class="cover-title">Security Exposure Report</div>
+        <div class="cover-subtitle">Beyond the Atomics | Deterministic Threat Emulation</div>
+        
+        <div class="confidential-badge">STRICTLY CONFIDENTIAL</div>
+        
+        <div class="cover-meta">
+            <p><strong>Assessment Date:</strong> {{ date }}</p>
+            <p><strong>Target Environment:</strong> Enterprise Active Directory & Endpoints</p>
+            <p><strong>Total Assets Emulated:</strong> {{ host_count }}</p>
+        </div>
+        
+        <img src="static/company_logo.png" style="height: 60px; margin-top: 30px;" onerror="this.style.display='none'">
+    </div>
+
+    <pdf:nextpage />
+
+    <div class="section-header">Executive Summary</div>
+    
+    <table class="layout-table">
+        <tr>
+            <td style="width: 33%;">
+                <div class="stat-box">
+                    <div class="stat-value" style="color: #0f172a;">{{ total_tests }}</div>
+                    <div class="stat-label">Total Emulated TTPs</div>
+                </div>
+            </td>
+            <td style="width: 33%;">
+                <div class="stat-box" style="border-top-color: #f59e0b;">
+                    <div class="stat-value" style="color: #f59e0b;">{{ gap_count }}</div>
+                    <div class="stat-label">GAP</div>
+                </div>
+            </td>
+            <td style="width: 33%;">
+                <div class="stat-box" style="border-top-color: #22c55e;">
+                    <div class="stat-value" style="color: #22c55e;">{{ alerted_count }}</div>
+                    <div class="stat-label">Alerted</div>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <table class="layout-table">
+        <tr>
+            <td style="width: 50%; text-align: center; background: #f8fafc; border: 1px solid #cbd5e1; padding: 15px;">
+                <div style="font-size: 11px; font-weight: bold; text-transform: uppercase; color: #475569; margin-bottom: 10px;">MITRE ATT&CK Weekly Detection</div>
+                <img src="https://quickchart.io/chart?c={type:'pie',data:{labels:['Alerted','GAP'],datasets:[{data:[{{ alerted_count }},{{ gap_count }}],backgroundColor:['%2322c55e','%23f59e0b']}]},options:{legend:{position:'bottom',labels:{fontSize:10,fontStyle:'bold'}}}}" 
+                     style="width: 250px; height: auto;" />
+            </td>
+            <td style="width: 50%; text-align: center; background: #f8fafc; border: 1px solid #cbd5e1; padding: 15px;">
+                <div style="font-size: 11px; font-weight: bold; text-transform: uppercase; color: #475569; margin-bottom: 10px;">Detection Performance</div>
+                <img src="https://quickchart.io/chart?c={type:'bar',data:{labels:['Alerted','GAP'],datasets:[{label:'Detections',data:[{{ alerted_count }},{{ gap_count }}],backgroundColor:['%2322c55e','%23f59e0b']}]},options:{legend:{display:false},scales:{yAxes:[{ticks:{beginAtZero:true,fontSize:10}}]}}}" 
+                     style="width: 250px; height: auto;" />
+            </td>
+        </tr>
+    </table>
+
+    <div style="margin-top: 20px; padding: 15px; background-color: #0f172a; border-radius: 8px; color: #ffffff;">
+        <table width="100%" border="0">
+            <tr>
+                <td style="text-align: center; width: 33%;">
+                    <div style="font-size: 10px; text-transform: uppercase; color: #94a3b8; font-weight: bold;">Prevented (Block Rate)</div>
+                    <div style="font-size: 24px; font-weight: bold; color: #38bdf8;">{{ prevented_count }}</div>
+                </td>
+                <td style="text-align: center; width: 33%;">
+                    <div style="font-size: 10px; text-transform: uppercase; color: #94a3b8; font-weight: bold;">Weekly Resilience Score</div>
+                    <div style="font-size: 24px; font-weight: bold; color: #4ade80;">{{ score }}%</div>
+                </td>
+                <td style="text-align: center; width: 34%;">
+                    <div style="font-size: 10px; text-transform: uppercase; color: #94a3b8; font-weight: bold;">Total Assets Tested</div>
+                    <div style="font-size: 24px; font-weight: bold; color: #facc15;">{{ host_count }}</div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section-header">Threat Intelligence Context</div>
+    <p style="font-size: 12px; color: #475569; margin-bottom: 15px;">The following high-priority threats were extracted from AlienVault OTX synchronization and prioritized for deterministic emulation against the environment.</p>
+    
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width: 35%;">Threat Title</th>
+                <th style="width: 25%;">Intelligence Source</th>
+                <th style="width: 40%;">Associated MITRE TTPs</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for threat in threats %}
+            <tr class="{{ loop.cycle('zebra-row', '') }}">
+                <td style="font-weight: bold; color: #0284c7;">{{ threat.title }}</td>
+                <td>{{ threat.source }}</td>
+                <td>
+                    {% for ttp in threat.techniques.replace('|', ',').split(',') %}
+                        {% if ttp.strip() %}
+                        <span class="ttp-badge">{{ ttp.strip() }}</span>
+                        {% endif %}
+                    {% endfor %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="section-header">Detailed Emulation & Audit Analysis</div>
+    
+    {% for ttp_id, items in results|groupby('ttp_id') %}
+        {% for res in items %}
+        
+        <table class="audit-table">
+            <tr>
+                <td colspan="4" class="audit-header">
+                    <strong>{{ ttp_id }}</strong> | {{ res.ttp_name }}
+                </td>
+            </tr>
+            <tr>
+                <th class="audit-subheader">Date / Time</th>
+                <td style="width: 35%;">{{ res.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                <th class="audit-subheader">Target Host</th>
+                <td style="width: 35%;"><strong>{{ res.target_hostname }}</strong></td>
+            </tr>
+            <tr>
+                <th class="audit-subheader">Risk Owner</th>
+                <td>{{ res.risk_owner or 'SOC / Infrastructure' }}</td>
+                <th class="audit-subheader">Final Outcome</th>
+                <td><span class="status status-{{ res.status.lower() }}">{{ res.status }}</span></td>
+            </tr>
+            
+            <tr>
+                <td colspan="4" style="background: #f8fafc;">
+                    <div style="font-weight: bold; color: #0f172a; margin-bottom: 4px; font-size: 10px; text-transform: uppercase;">Technical Execution Context</div>
+                    <div style="color: #334155;">{{ res.reasoning or 'Standard emulation procedure executed via agent.' }}</div>
+                </td>
+            </tr>
+
+            <tr>
+                <td colspan="4">
+                    <div style="font-weight: bold; color: #0f172a; margin-bottom: 4px; font-size: 10px; text-transform: uppercase;">DFIR Verdict & Impact Assessment</div>
+                    <div style="color: #334155;">
+                        {% if res.dfir_verdict %}
+                            {{ res.dfir_verdict | replace('**', '<b>') | replace('**', '</b>') | replace('\n', '<br>') | safe }}
+                        {% else %}
+                            The emulation yielded a {{ res.status.lower() }} state. No severe lateral movement or data exfiltration observed beyond the initial atomic execution.
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+
+            <tr>
+                <td colspan="4" style="background: #f8fafc;">
+                    <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td style="border: none; padding: 0;">
+                                {% if res.calculation_reasoning %}
+                                <div style="font-family: Courier, monospace; font-size: 10px; color: #475569;">
+                                    <strong>Wazuh Level Math:</strong> {{ res.calculation_reasoning }}
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td style="border: none; padding: 0; text-align: right;">
+                                {% if 'gap' in res.status.lower() or res.status.lower() == 'detected' %}
+                                <a href="{{ base_url }}/remediation/{{ ttp_id }}" style="color: #0284c7; font-weight: bold; text-decoration: none; font-size: 11px;">[ VIEW PLAYBOOK &rarr; ]</a>
+                                {% else %}
+                                <span style="color: #16a34a; font-weight: bold; font-size: 11px;">[ CONTROLS VALIDATED ]</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+
+        {% endfor %}
+    {% endfor %}
+
+    <div id="footer_content" style="text-align: center; border-top: 1px solid #cbd5e1; padding-top: 10px; color: #94a3b8; font-size: 10px;">
+        <p>Beyond the Atomics | Confidential Information | ISO 27001 Assessment Evidence</p>
+    </div>
+
+</body>
+</html>

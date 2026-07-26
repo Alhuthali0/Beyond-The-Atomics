@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automation Scheduler | Beyond the Atomics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --glass-bg: rgba(15, 23, 42, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --neon-blue: #38bdf8;
+            --neon-purple: #818cf8;
+        }
+
+        body {
+            background-color: #020617;
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        }
+
+    
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: -1;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(56, 189, 248, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(129, 140, 248, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 1) 0%, #020617 100%);
+        }
+
+        .blob {
+            position: fixed;
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(to right, var(--neon-blue), var(--neon-purple));
+            filter: blur(80px);
+            border-radius: 50%;
+            z-index: -1;
+            opacity: 0.2;
+            animation: float 20s infinite alternate;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(100px, 50px) scale(1.1); }
+        }
+
+        @keyframes instantFade {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        
+        .glass:not(nav, nav .glass, #smart-tooltip), .ttp-card, .asset-card, tbody tr {
+            animation: instantFade 0.25s ease-out forwards;
+        }
+    </style>
+
+    <!-- Theme Engine -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="bg-overlay"></div>
+    <div class="blob" style="top: -100px; left: -100px;"></div>
+    <div class="blob" style="bottom: -100px; right: -100px; animation-delay: -5s;"></div>
+
+    {% include 'nav.html' %}
+    
+    <div class="max-w-7xl mx-auto pb-12">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
+            <div class="flex items-center gap-4">
+                <div class="p-3 bg-blue-500/10 rounded-2xl">
+                    <i data-lucide="calendar-clock" class="text-blue-400 w-8 h-8"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-black text-white">Automation Scheduler</h1>
+                    <p class="text-xs text-slate-500 uppercase tracking-widest font-bold">Continuous Security Operations</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="deleteAllSchedules()" class="bg-red-500/10 hover:bg-red-500/20 text-red-500 text-sm font-bold py-3 px-6 rounded-xl transition-all border border-red-500/20 flex items-center gap-2">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i> Empty All
+                </button>
+                <button onclick="automateScheduling()" class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold py-3 px-8 rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i> Automate Full Week
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Add Schedule Form -->
+            <div class="lg:col-span-4">
+                <div class="glass p-8 rounded-[2.5rem] sticky top-8">
+                    <h2 class="text-lg font-bold mb-6 flex items-center gap-2">
+                        <i data-lucide="plus-circle" class="text-blue-400 w-5 h-5"></i>
+                        New Schedule
+                    </h2>
+                    <form action="/scheduling" method="POST" class="space-y-6">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Target Host</label>
+                            <select name="target_hostname" class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-white">
+                                <option value="">Select Agent</option>
+                                {% for host in hostnames %}
+                                <option value="{{ host }}">{{ host }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Technique ID (e.g. T1059)</label>
+                            <input type="text" name="ttp_id" placeholder="TXXXX" class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-white">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Date</label>
+                                <input type="date" name="run_date" required class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Time</label>
+                                <input type="time" name="run_time" required class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-white">
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-blue-500/20">
+                            Schedule Automation Task
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Automation Settings -->
+                <div class="glass p-8 rounded-[2.5rem] mt-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 class="text-lg font-bold">System Automation</h2>
+                            <p class="text-slate-500 text-xs">Automated continuous testing</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="autoFillSwitch" class="sr-only peer" {% if auto_fill_week %}checked{% endif %} onchange="toggleAutoFill(this.checked)">
+                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                    <p class="text-slate-400 text-sm leading-relaxed mb-6">
+                        When enabled, the system will automatically sync latest threats and populate your schedule for the full week whenever it becomes empty.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Schedule List -->
+            <div class="lg:col-span-8">
+                <div class="glass p-8 rounded-[2.5rem]">
+                    <h2 class="text-lg font-bold mb-6 flex items-center gap-2">
+                        <i data-lucide="list" class="text-blue-400 w-5 h-5"></i>
+                        Active Schedules
+                    </h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-separate border-spacing-y-4">
+                            <thead>
+                                <tr class="text-slate-500 text-[10px] font-black uppercase tracking-widest">
+                                    <th class="px-4">Type</th>
+                                    <th class="px-4">Target</th>
+                                    <th class="px-4">Technique</th>
+                                    <th class="px-4 text-center">Date & Time</th>
+                                    <th class="px-4">Last Run</th>
+                                    <th class="px-4 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sch in schedules %}
+                                <tr class="bg-slate-900/40 rounded-2xl border border-white/5">
+                                    <td class="px-4 py-4">
+                                        <span class="px-3 py-1 bg-blue-500/10 text-blue-400 rounded-lg text-[10px] font-bold uppercase">{{ sch.task_type }}</span>
+                                    </td>
+                                    <td class="px-4 py-4 text-sm font-medium">{{ sch.target_hostname or 'All' }}</td>
+                                    <td class="px-4 py-4 text-sm font-mono text-slate-400">{{ sch.ttp_id or 'Auto' }}</td>
+                                    <td class="px-4 py-4 text-center">
+                                        <div class="text-xs font-bold text-blue-400">{{ sch.run_date or 'Daily' }}</div>
+                                        <div class="text-[10px] text-slate-500">{{ sch.run_time }}</div>
+                                    </td>
+                                    <td class="px-4 py-4 text-xs text-slate-500">{{ sch.last_run.strftime('%Y-%m-%d %H:%M') if sch.last_run else 'Never' }}</td>
+                                    <td class="px-4 py-4 text-right">
+                                        <button onclick="deleteSchedule('{{ sch.id }}')" class="p-2 text-red-500/50 hover:text-red-500 transition-colors">
+                                            <i data-lucide="trash-2" class="w-5 h-5"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% if not schedules %}
+                        <div class="text-center py-12">
+                            <i data-lucide="calendar-x" class="w-12 h-12 text-slate-700 mx-auto mb-4"></i>
+                            <p class="text-slate-500 text-sm">No automated schedules configured.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        async function toggleAutoFill(enabled) {
+            const res = await fetch('/api/schedule/auto-fill-toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled })
+            });
+            if (!res.ok) alert('Failed to update auto-fill setting');
+        }
+
+        async function automateScheduling() {
+            if (confirm('Initiate automated full-week scheduling? This will sync threats and plan daily emulations for active agents.')) {
+                const res = await fetch('/api/schedule/automate', { method: 'POST' });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    alert(`Success! Generated ${data.count} new scheduled tasks.`);
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            }
+        }
+
+        async function deleteSchedule(id) {
+            if (confirm('Delete this schedule?')) {
+                const res = await fetch(`/api/schedule/delete/${id}`, { method: 'POST' });
+                if (res.ok) window.location.reload();
+            }
+        }
+
+        async function deleteAllSchedules() {
+            if (confirm('Are you sure you want to delete ALL active schedules? This cannot be undone.')) {
+                const res = await fetch('/api/schedule/delete-all', { method: 'POST' });
+                if (res.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Failed to delete schedules.');
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('nav a');
+            navLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if (!href) return;
+                let isActive = (href === '/' && currentPath === '/') || (href !== '/' && currentPath.startsWith(href));
+                if (isActive) {
+                    link.classList.remove('text-slate-400');
+                    link.classList.add('text-blue-400');
+                    link.style.textShadow = '0 0 15px rgba(56, 189, 248, 0.8)';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

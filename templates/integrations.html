@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integrations | Beyond the Atomics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg-deep: #020617;
+            --glass: rgba(15, 23, 42, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.05);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-deep);
+            background-image: 
+                radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(99, 102, 241, 0.05) 0%, transparent 50%);
+            min-height: 100vh;
+        }
+
+        .glass {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+        }
+
+        .terminal-font { font-family: 'Fira Code', monospace; }
+        
+        input:focus {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 22px;
+        }
+
+        .switch input { opacity: 0; width: 0; height: 0; }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(255,255,255,0.1);
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px; width: 16px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider { background-color: #3b82f6; }
+        input:checked + .slider:before { transform: translateX(22px); }
+    
+        
+
+        
+
+        
+
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: -1;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(56, 189, 248, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(129, 140, 248, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 1) 0%, #020617 100%);
+        }
+
+        .blob {
+            position: fixed;
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(to right, var(--neon-blue), var(--neon-purple));
+            filter: blur(80px);
+            border-radius: 50%;
+            z-index: -1;
+            opacity: 0.2;
+            animation: float 20s infinite alternate;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            100% {
+                transform: translate(100px, 50px) scale(1.1);
+            }
+        }
+
+
+
+</style>
+<!-- FOUC Prevention & Animation Styles -->
+    <style>
+        @keyframes instantFade {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Apply instant simultaneous fade to all main elements, no delays, incredibly fast */
+        .glass:not(nav, nav .glass, #smart-tooltip), .ttp-card, .asset-card, tbody tr {
+            animation: instantFade 0.25s ease-out forwards;
+        }
+    </style>
+
+    <!-- Theme Engine -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+</head>
+<body class="text-slate-200 p-4 md:p-8">
+
+    <div class="bg-overlay"></div>
+    <div class="blob" style="top: -100px; left: -100px;"></div>
+    <div class="blob" style="bottom: -100px; right: -100px; animation-delay: -5s;"></div>
+
+    
+    
+    
+
+    {% include 'nav.html' %}
+
+    <div class="max-w-7xl mx-auto px-6 pb-20">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-10">
+            <div>
+                <h1 class="text-4xl font-black text-white tracking-tight flex items-center gap-3">
+                    <span class="p-2.5 bg-blue-500/10 rounded-2xl">
+                        <i data-lucide="blocks" class="text-blue-400 w-8 h-8"></i>
+                    </span>
+                    System Integrations
+                </h1>
+                <p class="text-slate-500 mt-2 font-medium">Configure SIEM validation, Threat Intel sources, and AI processing.</p>
+            </div>
+            <button onclick="saveIntegrations()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-2xl transition-all shadow-xl shadow-blue-500/20 flex items-center gap-2">
+                <i data-lucide="save" class="w-4 h-4"></i> Save All Settings
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Wazuh SIEM -->
+            <div class="glass p-8 rounded-[2.5rem] relative overflow-hidden group">
+                <div class="flex items-center justify-between mb-8">
+                    <div class="flex items-center gap-4">
+                        <div class="p-3 bg-green-500/10 rounded-2xl">
+                            <i data-lucide="shield-check" class="text-green-400 w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-white leading-none">Wazuh SIEM</h3>
+                            <p class="text-[10px] text-slate-500 uppercase tracking-widest font-black mt-1">Verification Engine</p>
+                        </div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="wazuh_enabled" {% if config.wazuh_enabled %}checked{% endif %}>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Manager IP / Hostname</label>
+                        <input type="text" id="wazuh_ip" value="{{ config.wazuh_ip }}" placeholder="e.g. 192.168.1.235" 
+                            class="w-full bg-slate-900/50 border border-white/5 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all terminal-font">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">API Username</label>
+                            <input type="text" id="wazuh_user" value="{{ config.wazuh_user }}" placeholder="admin" 
+                                class="w-full bg-slate-900/50 border border-white/5 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">API Password</label>
+                            <input type="password" id="wazuh_password" placeholder="••••••••" 
+                                class="w-full bg-slate-900/50 border border-white/5 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                        </div>
+                    </div>
+                    <button onclick="testWazuh()" class="w-full bg-white/5 hover:bg-white/10 text-slate-300 font-bold py-3 rounded-xl border border-white/5 transition-all flex items-center justify-center gap-2 text-xs">
+                        <i data-lucide="activity" class="w-3.5 h-3.5"></i> Test Wazuh Connection
+                    </button>
+                </div>
+            </div>
+
+            <!-- AlienVault OTX -->
+            <div class="glass p-8 rounded-[2.5rem] relative overflow-hidden group">
+                <div class="flex items-center gap-4 mb-8">
+                    <div class="p-3 bg-blue-500/10 rounded-2xl">
+                        <i data-lucide="database" class="text-blue-400 w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-white leading-none">AlienVault OTX</h3>
+                        <p class="text-[10px] text-slate-500 uppercase tracking-widest font-black mt-1">Threat Intel Pulse</p>
+                    </div>
+                </div>
+
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">OTX API Key</label>
+                        <input type="password" id="otx_api_key" value="{{ config.otx_api_key }}" placeholder="Your OTX API Key" 
+                            class="w-full bg-slate-900/50 border border-white/5 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all terminal-font">
+                    </div>
+                    <button onclick="testOTX()" class="w-full bg-white/5 hover:bg-white/10 text-slate-300 font-bold py-3 rounded-xl border border-white/5 transition-all flex items-center justify-center gap-2 text-xs">
+                        <i data-lucide="zap" class="w-3.5 h-3.5"></i> Validate OTX Key
+                    </button>
+                    <p class="text-[9px] text-slate-600 flex items-center gap-1.5 leading-relaxed">
+                        <i data-lucide="info" class="w-3 h-3 shrink-0"></i>
+                        Get a key at <a href="https://otx.alienvault.com/" target="_blank" class="text-blue-400 underline">otx.alienvault.com</a>.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Ollama AI -->
+            <div class="glass p-8 rounded-[2.5rem] relative overflow-hidden group md:col-span-2">
+                <div class="flex items-center justify-between mb-8">
+                    <div class="flex items-center gap-4">
+                        <div class="p-3 bg-purple-500/10 rounded-2xl">
+                            <i data-lucide="brain-circuit" class="text-purple-400 w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-white leading-none">Ollama Local AI</h3>
+                            <p class="text-[10px] text-slate-500 uppercase tracking-widest font-black mt-1">Smart Decision Logic</p>
+                        </div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="ollama_enabled" {% if config.ollama_enabled %}checked{% endif %}>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="space-y-5">
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Ollama Base URL</label>
+                            <input type="text" id="ollama_url" value="{{ config.ollama_url }}" placeholder="http://localhost:11434" 
+                                class="w-full bg-slate-900/50 border border-white/5 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all terminal-font">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Active Model</label>
+                            <div class="flex gap-2">
+                                <select id="ollama_model" class="flex-grow bg-slate-900/50 border border-white/5 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                                    <option value="{{ config.ollama_model }}">{{ config.ollama_model }}</option>
+                                </select>
+                                <button onclick="refreshModels()" class="p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl transition-all" title="Refresh Models">
+                                    <i data-lucide="refresh-cw" class="w-4 h-4 text-slate-400"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button onclick="testAI()" class="w-full bg-white/5 hover:bg-white/10 text-slate-300 font-bold py-3 rounded-xl border border-white/5 transition-all flex items-center justify-center gap-2 text-xs">
+                            <i data-lucide="brain-circuit" class="w-3.5 h-3.5"></i> Test AI Reasoning
+                        </button>
+                    </div>
+
+                    <div class="bg-black/20 rounded-3xl p-6 border border-white/5">
+                        <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Quick Setup Guide</h4>
+                        <ol class="space-y-3 text-xs text-slate-400 list-decimal pl-4 leading-relaxed">
+                            <li>Install Ollama: <code class="bg-black p-1 rounded text-blue-400">curl -fsSL https://ollama.com/install.sh | sh</code></li>
+                            <li>Download a model: <code class="bg-black p-1 rounded text-blue-400">ollama run phi3</code></li>
+                            <li>Ensure the daemon is running and reachable via the URL on the left.</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        window.onload = () => {
+            if (document.getElementById('ollama_enabled').checked) {
+                refreshModels();
+            }
+        };
+
+        async function testWazuh() {
+            const data = {
+                ip: document.getElementById('wazuh_ip').value,
+                user: document.getElementById('wazuh_user').value,
+                password: document.getElementById('wazuh_password').value
+            };
+            const btn = event.currentTarget;
+            const original = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = "Connecting...";
+
+            try {
+                const res = await fetch('/api/integrations/wazuh/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const resData = await res.json();
+                alert(resData.message);
+            } catch (e) {
+                alert("Network error: Could not reach backend.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = original;
+            }
+        }
+
+        async function testOTX() {
+            const key = document.getElementById('otx_api_key').value;
+            const btn = event.currentTarget;
+            btn.disabled = true;
+            btn.innerText = "Validating...";
+
+            try {
+                const res = await fetch('/api/integrations/otx/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: key })
+                });
+                const resData = await res.json();
+                alert(resData.message);
+            } catch (e) {
+                alert("Network error: Could not reach backend.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Validate OTX Key";
+            }
+        }
+
+        async function testAI() {
+            const data = {
+                url: document.getElementById('ollama_url').value,
+                model: document.getElementById('ollama_model').value
+            };
+            const btn = event.currentTarget;
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<div class="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></div> Thinking...';
+
+            try {
+                const res = await fetch('/api/integrations/ollama/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const resData = await res.json();
+                alert(resData.message);
+            } catch (e) {
+                alert("Network error: Could not reach backend.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = original;
+            }
+        }
+
+        async function refreshModels() {
+            const btn = event.currentTarget;
+            const icon = btn.querySelector('i');
+            icon.classList.add('animate-spin');
+            
+            try {
+                const res = await fetch('/api/integrations/ollama/models');
+                const data = await res.json();
+                if (data.status === 'success') {
+                    const select = document.getElementById('ollama_model');
+                    const currentVal = select.value;
+                    select.innerHTML = '';
+                    data.models.forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m;
+                        opt.innerText = m;
+                        if (m === currentVal) opt.selected = true;
+                        select.appendChild(opt);
+                    });
+                } else {
+                    alert(data.message);
+                }
+            } catch (e) {
+                alert("Failed to connect to Ollama.");
+            } finally {
+                icon.classList.remove('animate-spin');
+            }
+        }
+
+        async function saveIntegrations() {
+            const data = {
+                wazuh_enabled: document.getElementById('wazuh_enabled').checked,
+                wazuh_ip: document.getElementById('wazuh_ip').value,
+                wazuh_user: document.getElementById('wazuh_user').value,
+                wazuh_password: document.getElementById('wazuh_password').value,
+                otx_api_key: document.getElementById('otx_api_key').value,
+                ollama_enabled: document.getElementById('ollama_enabled').checked,
+                ollama_url: document.getElementById('ollama_url').value,
+                ollama_model: document.getElementById('ollama_model').value
+            };
+
+            const res = await fetch('/api/integrations/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                alert("Integrations saved successfully!");
+                location.reload();
+            } else {
+                alert("Failed to save settings.");
+            }
+        }
+    </script>
+
+    
+
+<!-- Global Cascade Animation & Active Nav Link -->
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // 1. Navigation Active Link Highlight
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('nav a');
+        
+        navLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (!href) return;
+            
+            let isActive = false;
+            if (href === '/') {
+                if (currentPath === '/') isActive = true;
+            } else {
+                if (currentPath.startsWith(href)) isActive = true;
+            }
+            
+            if (isActive) {
+                link.classList.remove('text-slate-400');
+                link.classList.add('text-blue-400');
+                link.style.textShadow = '0 0 15px rgba(56, 189, 248, 0.8)';
+            }
+        });
+
+        
+    });
+    </script>
+</body>
+</html>

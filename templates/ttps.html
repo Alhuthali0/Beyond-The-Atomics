@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTP Library | Beyond the Atomics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root { --glass-bg: rgba(15, 23, 42, 0.8); --glass-border: rgba(255, 255, 255, 0.1); }
+        body { background: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; min-height: 100vh; }
+        .glass { background: var(--glass-bg); backdrop-filter: blur(12px); border: 1px solid var(--glass-border); }
+        .ttp-card:hover { transform: translateY(-4px); border-color: rgba(56, 189, 248, 0.4); box-shadow: 0 20px 40px -20px rgba(56, 189, 248, 0.2); }
+    
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: -1;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(56, 189, 248, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(129, 140, 248, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 1) 0%, #020617 100%);
+        }
+
+        .blob {
+            position: fixed;
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(to right, var(--neon-blue), var(--neon-purple));
+            filter: blur(80px);
+            border-radius: 50%;
+            z-index: -1;
+            opacity: 0.2;
+            animation: float 20s infinite alternate;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(100px, 50px) scale(1.1); }
+        }
+
+        @keyframes instantFade {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        
+        .glass:not(nav, nav .glass, #smart-tooltip), .ttp-card, .asset-card, tbody tr {
+            animation: instantFade 0.25s ease-out forwards;
+        }
+    </style>
+
+    <!-- Theme Engine -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="bg-overlay"></div>
+    <div class="blob" style="top: -100px; left: -100px;"></div>
+    <div class="blob" style="bottom: -100px; right: -100px; animation-delay: -5s;"></div>
+
+    {% include 'nav.html' %}
+    
+    <div class="max-w-7xl mx-auto pb-12">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
+            <div class="flex items-center gap-4">
+                <div class="p-3 bg-blue-500/10 rounded-2xl">
+                    <i data-lucide="library" class="text-blue-400 w-8 h-8"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-black text-white">TTP Library</h1>
+                    <p class="text-xs text-slate-500 uppercase tracking-widest font-bold">MITRE ATT&CK & Atomic Red Team</p>
+                </div>
+            </div>
+            
+            <div class="flex-grow flex flex-col md:flex-row gap-4 w-full md:w-auto">
+                <div class="flex-grow relative group">
+                    <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5 group-focus-within:text-blue-400 transition-colors"></i>
+                    <input type="text" id="ttpSearch" placeholder="Search ID or Title..." 
+                        class="bg-slate-900/50 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none w-full transition-all text-white">
+                </div>
+                <div class="flex items-center gap-6 px-6 bg-slate-900/50 border border-white/10 rounded-xl min-h-[46px]">
+                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">OS:</span>
+                    <label class="flex items-center gap-2 cursor-pointer group">
+                        <input type="checkbox" id="filterWin" checked class="w-4 h-4 rounded border-white/10 bg-slate-800 text-blue-500 focus:ring-blue-500 transition-all cursor-pointer">
+                        <span class="text-xs font-bold text-slate-400 group-hover:text-white transition-colors">Win</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer group">
+                        <input type="checkbox" id="filterLinux" checked class="w-4 h-4 rounded border-white/10 bg-slate-800 text-blue-500 focus:ring-blue-500 transition-all cursor-pointer">
+                        <span class="text-xs font-bold text-slate-400 group-hover:text-white transition-colors">Linux</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="ttpGrid">
+            {% for ttp in ttps %}
+            <div class="ttp-card glass p-6 rounded-[2rem] border border-white/5 transition-all cursor-pointer flex flex-col h-full group"
+                 onclick='openTTPModal("{{ ttp.id }}", "{{ ttp.name }}", "{{ ttp.description }}")'
+                 data-blob="{{ ttp.search_blob | e }}"
+                 data-platforms="{{ ttp.platforms | join(',') }}">
+                <div class="flex justify-between items-start mb-4">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-blue-400 bg-blue-400/10 px-3 py-1 rounded-full">
+                        {{ ttp.id }}
+                    </span>
+                    <div class="flex gap-2">
+                        {% if 'windows' in ttp.platforms %}
+                        <img src="/static/windows.png" class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" title="Windows">
+                        {% endif %}
+                        {% if 'linux' in ttp.platforms %}
+                        <img src="/static/linux.png" class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" title="Linux">
+                        {% endif %}
+                    </div>
+                </div>
+                <h3 class="text-lg font-bold mb-3 leading-tight group-hover:text-blue-300 transition-colors">{{ ttp.name }}</h3>
+                <p class="text-xs text-slate-500 mb-6 line-clamp-3 leading-relaxed flex-grow">
+                    {{ ttp.description }}
+                </p>
+                
+                <div class="flex items-center justify-between pt-4 border-t border-white/5 mt-auto">
+                    <div class="flex items-center gap-2">
+                        {% if ttp.runnable %}
+                        <span class="flex items-center gap-1 text-[9px] font-bold text-green-400 uppercase">
+                            <i data-lucide="zap" class="w-3 h-3"></i> Runnable
+                        </span>
+                        {% else %}
+                        <span class="flex items-center gap-1 text-[9px] font-bold text-slate-500 uppercase">
+                            <i data-lucide="alert-circle" class="w-3 h-3"></i> Manual/Setup
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="text-[10px] font-bold text-slate-600 uppercase">{{ ttp.test_count }} Tests</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- TTP Detail Modal -->
+    <div id="ttpModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+        <div class="glass max-w-6xl w-full h-[90vh] rounded-[3rem] border-white/10 relative overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300">
+            <!-- Modal Header -->
+            <div class="p-10 pb-4 flex justify-between items-center border-b border-white/5">
+                <div class="flex items-center gap-4">
+                    <span id="modalTTPID" class="text-xs font-black uppercase tracking-widest text-blue-400 bg-blue-400/10 px-4 py-1.5 rounded-full border border-blue-500/20"></span>
+                    <h2 id="modalTTPName" class="text-3xl font-black text-white"></h2>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button onclick="window.location.href='/remediation/' + currentTTP.id" class="bg-green-500/10 hover:bg-green-500/20 text-green-400 font-bold py-2 px-6 rounded-xl border border-green-500/20 transition-all flex items-center justify-center gap-2 text-sm">
+                        <i data-lucide="shield-check" class="w-4 h-4"></i> View Mitigations
+                    </button>
+                    <button onclick="closeTTPModal()" class="text-slate-400 hover:text-white transition-colors p-2 bg-white/5 rounded-full">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex flex-1 overflow-hidden p-10 pt-4 gap-12">
+                <!-- Left Column: Test Selector -->
+                <div class="w-[30%] flex flex-col gap-4 overflow-hidden border-r border-white/5 pr-6">
+                    <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                        <i data-lucide="list" class="w-3 h-3"></i> Available Atomic Tests
+                    </h4>
+                    <div id="testList" class="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2">
+                        <!-- Dynamic list of tests -->
+                    </div>
+                </div>
+
+                <!-- Right Column: Test Details -->
+                <div id="testDetailsArea" class="flex-1 flex flex-col gap-6 overflow-y-auto custom-scrollbar pr-2 hidden relative z-10">
+                    <div class="bg-black/30 rounded-3xl p-6 border border-white/5">
+                        <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Test Description</h4>
+                        <p id="modalTestDesc" class="text-sm text-slate-300 leading-relaxed"></p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-black/30 rounded-3xl p-6 border border-white/5">
+                            <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Safety & Impact</h4>
+                            <div class="flex items-center gap-2 mb-2">
+                                <span id="modalSafetyBadge" class="text-[10px] font-bold px-3 py-1 rounded-full uppercase"></span>
+                            </div>
+                            <p id="modalSafetyReason" class="text-xs text-slate-400 italic"></p>
+                        </div>
+                        <div class="bg-black/30 rounded-3xl p-6 border border-white/5">
+                            <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Compatibility</h4>
+                            <div id="modalTestPlatforms" class="flex flex-wrap gap-2"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950/50 rounded-3xl border border-white/5 p-6">
+                        <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex justify-between items-center">
+                            Command Chain
+                            <span id="modalExecutorBadge" class="text-blue-400 lowercase font-mono"></span>
+                        </h4>
+                        <div id="modalCommandChain" class="space-y-4">
+                            <!-- Dynamic Chain Injected via JS -->
+                        </div>
+                    </div>
+
+                    <div class="mt-auto pt-6 border-t border-white/5 grid grid-cols-2 gap-8">
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase">Target Agent</label>
+                                <span id="compatWarning" class="text-[10px] text-red-400 font-bold hidden">OS Mismatch!</span>
+                            </div>
+                            <select id="modalAgentSelect" class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                                <option value="">Select Agent...</option>
+                            </select>
+                            <div class="flex gap-4">
+                                <button id="runNowBtn" onclick="runTTPNow()" class="flex-grow bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                                    <i data-lucide="play" class="w-4 h-4"></i> Run Now
+                                </button>
+                                <button onclick="openScheduleModal()" class="flex-grow bg-white/5 hover:bg-white/10 text-white font-bold py-4 rounded-2xl border border-white/10 transition-all flex items-center justify-center gap-2">
+                                    <i data-lucide="calendar" class="w-4 h-4"></i> Schedule
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="executionResultArea" class="bg-black/40 rounded-3xl p-6 border border-blue-500/20 hidden animate-in slide-in-from-bottom-4 duration-500">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-[10px] font-black text-blue-400 uppercase tracking-widest">Execution Result</h4>
+                                <span id="resultStatusBadge" class="text-[9px] font-black px-3 py-1 rounded-full uppercase"></span>
+                            </div>
+                            <pre id="executionOutput" class="text-[11px] font-mono text-slate-300 whitespace-pre-wrap max-h-48 overflow-y-auto custom-scrollbar bg-black/20 p-4 rounded-xl border border-white/5"></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="testDetailsPlaceholder" class="flex-1 flex flex-col items-center justify-center text-center opacity-40">
+                    <i data-lucide="mouse-pointer-2" class="w-12 h-12 mb-4"></i>
+                    <h3 class="text-lg font-bold">Select a test to begin</h3>
+                    <p class="text-sm">Each technique has multiple variations. Select one from the list.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scheduling Modal (Nested) -->
+    <div id="scheduleModal" class="fixed inset-0 z-[110] hidden items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
+        <div class="glass max-w-lg w-full p-10 rounded-[3rem] border-white/10 relative">
+            <button onclick="closeScheduleModal()" class="absolute top-8 right-8 text-slate-400 hover:text-white transition-colors">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+            <h2 class="text-2xl font-black text-white mb-8 flex items-center gap-3">
+                <i data-lucide="calendar-plus" class="text-blue-400"></i> Schedule Task
+            </h2>
+
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2">Execution Date</label>
+                    <input type="date" id="schDate" class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2">Execution Time (5-min slots)</label>
+                    <div id="timeGrid" class="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar p-1">
+                        <!-- Time slots generated by JS -->
+                    </div>
+                </div>
+
+                <button onclick="confirmSchedule()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-2xl transition-all shadow-xl shadow-blue-500/20">
+                    Confirm Schedule
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        let currentTTP = null;
+        let activeAgents = [];
+        let ttpTests = [];
+        let selectedTest = null;
+        let existingSchedules = [];
+
+        // Updated Search & Filter logic
+        const ttpSearch = document.getElementById('ttpSearch');
+        const filterWin = document.getElementById('filterWin');
+        const filterLinux = document.getElementById('filterLinux');
+
+        function applyFilters() {
+            const val = ttpSearch.value.toLowerCase();
+            const winChecked = filterWin.checked;
+            const linuxChecked = filterLinux.checked;
+            
+            const container = document.getElementById('ttpGrid');
+            const cards = Array.from(container.querySelectorAll('.ttp-card'));
+            
+            cards.forEach(card => {
+                const id = card.querySelector('span').innerText.toLowerCase();
+                const title = card.querySelector('h3').innerText.toLowerCase();
+                const blob = card.dataset.blob ? card.dataset.blob.toLowerCase() : "";
+                const platforms = (card.dataset.platforms || "").toLowerCase();
+                
+                let matchesSearch = (val === '' || id.includes(val) || title.includes(val) || blob.includes(val));
+                
+                let matchesOS = false;
+                if (winChecked && platforms.includes('windows')) matchesOS = true;
+                if (linuxChecked && platforms.includes('linux')) matchesOS = true;
+                // If neither OS is present (rare for ART), show it anyway or base on logic
+                if (!platforms.includes('windows') && !platforms.includes('linux')) matchesOS = true;
+
+                if (matchesSearch && matchesOS) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        ttpSearch.addEventListener('input', applyFilters);
+        filterWin.addEventListener('change', applyFilters);
+        filterLinux.addEventListener('change', applyFilters);
+
+        async function loadAppData() {
+            const [agentsRes, schRes] = await Promise.all([
+                fetch('/api/assets/active'),
+                fetch('/api/schedule/all')
+            ]);
+            activeAgents = await agentsRes.json();
+            existingSchedules = await schRes.json();
+        }
+        loadAppData();
+
+        async function openTTPModal(id, name, desc) {
+            currentTTP = { id, name };
+            document.getElementById('modalTTPID').innerText = id;
+            document.getElementById('modalTTPName').innerText = name;
+            const testList = document.getElementById('testList');
+            testList.innerHTML = '<div class="p-4 text-center text-slate-500 text-xs animate-pulse">Fetching tests...</div>';
+            document.getElementById('testDetailsArea').classList.add('hidden');
+            document.getElementById('testDetailsPlaceholder').classList.remove('hidden');
+            document.getElementById('ttpModal').classList.replace('hidden', 'flex');
+            try {
+                const res = await fetch(`/api/ttps/${id}/tests`);
+                ttpTests = await res.json();
+                renderTestList();
+            } catch (e) {
+                testList.innerHTML = '<div class="p-4 text-center text-red-400 text-xs">Failed to load tests.</div>';
+            }
+            lucide.createIcons();
+        }
+
+        function renderTestList() {
+            const testList = document.getElementById('testList');
+            testList.innerHTML = '';
+            ttpTests.forEach((test, index) => {
+                const btn = document.createElement('div');
+                btn.className = `p-4 rounded-2xl border cursor-pointer transition-all group ${selectedTest?.guid === test.guid ? 'bg-blue-500/10 border-blue-500/40' : 'bg-white/5 border-white/5 hover:border-white/20'}`;
+                btn.onclick = () => selectTest(test);
+                const safetyColor = test.safety_rating === 'safe' ? 'text-green-400' : 'text-red-400';
+                const elevationBadge = test.elevation_required ? 
+                    '<span class="text-[8px] font-black text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full border border-blue-500/20 uppercase tracking-tighter">Requires Elevation</span>' : 
+                    '<span class="text-[8px] font-black text-slate-500 bg-slate-500/10 px-2 py-0.5 rounded-full border border-slate-500/20 uppercase tracking-tighter">Standard User</span>';
+                btn.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-[9px] font-black text-slate-500 uppercase">Test ${index + 1}</span>
+                        <div class="flex items-center gap-2">
+                            ${elevationBadge}
+                            <i data-lucide="${test.safety_rating === 'safe' ? 'shield' : 'alert-triangle'}" class="w-3 h-3 ${safetyColor}"></i>
+                        </div>
+                    </div>
+                    <h5 class="text-xs font-bold text-white group-hover:text-blue-300 transition-colors">${test.name}</h5>
+                `;
+                testList.appendChild(btn);
+            });
+        }
+
+        function selectTest(test) {
+            selectedTest = test;
+            renderTestList();
+            document.getElementById('testDetailsPlaceholder').classList.add('hidden');
+            document.getElementById('testDetailsArea').classList.remove('hidden');
+            document.getElementById('modalTestDesc').innerText = test.description;
+            document.getElementById('modalExecutorBadge').innerText = test.executor;
+            const cmdContainer = document.getElementById('modalCommandChain');
+            cmdContainer.innerHTML = '';
+            if (test.dependencies && test.dependencies.length > 0) {
+                test.dependencies.forEach((dep, idx) => {
+                    const depBlock = document.createElement('div');
+                    depBlock.className = 'mb-2';
+                    depBlock.innerHTML = `
+                        <h5 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                            <i data-lucide="download-cloud" class="w-3 h-3"></i> Pre-flight & Fetch (${idx + 1})
+                        </h5>
+                        <p class="text-[10px] text-slate-500 mb-2 italic">${dep.description || 'No description'}</p>
+                        <div class="grid grid-cols-1 gap-2">
+                            ${dep.prereq_command ? `
+                            <div class="bg-black/40 p-3 rounded-lg border border-white/5">
+                                <span class="text-[9px] text-slate-500 uppercase mb-1 block">Check Condition:</span>
+                                <pre class="text-[11px] font-mono text-yellow-300 whitespace-pre-wrap">${dep.prereq_command}</pre>
+                            </div>` : ''}
+                            ${dep.get_prereq_command ? `
+                            <div class="bg-black/40 p-3 rounded-lg border border-white/5">
+                                <span class="text-[9px] text-slate-500 uppercase mb-1 block">Fetch Action:</span>
+                                <pre class="text-[11px] font-mono text-blue-300 whitespace-pre-wrap">${dep.get_prereq_command}</pre>
+                            </div>` : ''}
+                        </div>
+                    `;
+                    cmdContainer.appendChild(depBlock);
+                });
+            }
+            if (test.command) {
+                const execBlock = document.createElement('div');
+                execBlock.className = 'mb-2';
+                execBlock.innerHTML = `
+                    <h5 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center justify-between">
+                        <span class="flex items-center gap-2"><i data-lucide="terminal" class="w-3 h-3"></i> Main Execution</span>
+                    </h5>
+                    <pre class="text-[11px] font-mono text-green-300 bg-black/40 p-4 rounded-xl overflow-x-auto whitespace-pre-wrap border border-white/5">${test.command}</pre>
+                `;
+                cmdContainer.appendChild(execBlock);
+            }
+            if (test.cleanup_command) {
+                const cleanupBlock = document.createElement('div');
+                cleanupBlock.className = 'mb-2 mt-4 pt-4 border-t border-white/5';
+                cleanupBlock.innerHTML = `
+                    <h5 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <i data-lucide="trash-2" class="w-3 h-3"></i> Cleanup
+                    </h5>
+                    <pre class="text-[11px] font-mono text-slate-400 bg-black/40 p-4 rounded-xl overflow-x-auto whitespace-pre-wrap border border-white/5">${test.cleanup_command}</pre>
+                `;
+                cmdContainer.appendChild(cleanupBlock);
+            }
+            const safetyBadge = document.getElementById('modalSafetyBadge');
+            safetyBadge.innerText = test.safety_rating;
+            safetyBadge.className = `text-[10px] font-bold px-3 py-1 rounded-full uppercase ${test.safety_rating === 'safe' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`;
+            document.getElementById('modalSafetyReason').innerText = test.safety_reason;
+            const userContextBadge = document.createElement('span');
+            userContextBadge.className = `text-[10px] font-bold px-3 py-1 rounded-full uppercase ${test.elevation_required ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-slate-500/20 text-slate-300 border border-slate-500/30'}`;
+            userContextBadge.innerText = test.user_context || (test.elevation_required ? "Privileged user" : "Standard user");
+            const safetyContainer = safetyBadge.parentElement;
+            const existingUserContext = safetyContainer.querySelector('.user-context-badge');
+            if (existingUserContext) existingUserContext.remove();
+            userContextBadge.classList.add('user-context-badge');
+            safetyContainer.appendChild(userContextBadge);
+            const platCont = document.getElementById('modalTestPlatforms');
+            platCont.innerHTML = '';
+            test.platforms.forEach(p => {
+                const span = document.createElement('span');
+                span.className = 'flex items-center gap-1.5 px-2.5 py-1 bg-white/5 rounded-lg border border-white/5 text-[10px] text-slate-300 uppercase font-bold';
+                span.innerHTML = `<img src="/static/${p.trim()}.png" class="w-3 h-3"> ${p.trim()}`;
+                platCont.appendChild(span);
+            });
+            const select = document.getElementById('modalAgentSelect');
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">Select Agent...</option>';
+            activeAgents.forEach(agent => {
+                const isCompat = test.platforms.includes(agent.os.toLowerCase()) || test.platforms.includes('all');
+                const opt = document.createElement('option');
+                opt.value = agent.hostname;
+                opt.innerText = `${agent.hostname} (${agent.os})`;
+                if (!isCompat) opt.disabled = true;
+                select.appendChild(opt);
+            });
+            select.value = currentVal;
+            const hostname = select.value;
+            if (hostname) {
+                const agent = activeAgents.find(a => a.hostname === hostname);
+                const isCompat = test.platforms.includes(agent.os.toLowerCase()) || test.platforms.includes('all');
+                document.getElementById('compatWarning').classList.toggle('hidden', isCompat);
+                document.getElementById('runNowBtn').disabled = !isCompat;
+            }
+            lucide.createIcons();
+        }
+
+        function closeTTPModal() {
+            document.getElementById('ttpModal').classList.replace('flex', 'hidden');
+            selectedTest = null;
+        }
+
+        async function runTTPNow() {
+            const hostname = document.getElementById('modalAgentSelect').value;
+            if (!hostname || !selectedTest) return;
+            try {
+                const sRes = await fetch('/api/integrations/status');
+                const sData = await sRes.json();
+                if (!sData.wazuh_enabled) {
+                    if (!confirm("SIEM integration is not configured. Do you want to run this test without detection validation?")) return;
+                }
+            } catch (e) { console.error("Integrations status check failed", e); }
+            const btn = document.getElementById('runNowBtn');
+            const resultArea = document.getElementById('executionResultArea');
+            const resultOutput = document.getElementById('executionOutput');
+            const resultBadge = document.getElementById('resultStatusBadge');
+            const originalContent = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> Executing...';
+            resultArea.classList.remove('hidden');
+            resultOutput.innerText = "Task queued for agent. Waiting for verification (20s delay)...";
+            resultBadge.className = "text-[10px] font-bold px-3 py-1 rounded-full uppercase bg-blue-500/20 text-blue-400 border border-blue-500/30";
+            resultBadge.innerText = "WAITING";
+            try {
+                const res = await fetch('/api/manual', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ test_guid: selectedTest.guid, ttp_id: currentTTP.id, hostname: hostname })
+                });
+                const data = await res.json();
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+                if (data.status === 'executed') {
+                    resultOutput.innerText = data.output;
+                    const sec = (data.sec_status || "").toLowerCase();
+                    if (sec.includes('gap')) resultBadge.className = "text-[10px] font-bold px-3 py-1 rounded-full uppercase bg-orange-500/20 text-orange-500 border border-orange-500/30";
+                    else if (sec.includes('alerted')) resultBadge.className = "text-[10px] font-bold px-3 py-1 rounded-full uppercase bg-green-500/20 text-green-400 border border-green-500/30";
+                    else if (sec.includes('prevented')) resultBadge.className = "text-[10px] font-bold px-3 py-1 rounded-full uppercase bg-blue-500/20 text-blue-400 border border-blue-500/30";
+                    else if (sec.includes('missed')) resultBadge.className = "text-[10px] font-bold px-3 py-1 rounded-full uppercase bg-red-500/20 text-red-400 border border-red-500/30";
+                    else resultBadge.className = "text-[10px] font-bold px-3 py-1 rounded-full uppercase bg-slate-500/20 text-slate-300 border border-slate-500/30";
+                    resultBadge.innerText = data.sec_status || "Executed";
+                } else {
+                    resultOutput.innerText = "Error: " + (data.output || "Failed to initiate execution.");
+                    resultBadge.className = "text-[10px] font-bold px-3 py-1 rounded-full uppercase bg-red-500/20 text-red-400 border border-red-500/30";
+                    resultBadge.innerText = "ERROR";
+                }
+            } catch (err) {
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+                resultOutput.innerText = "Network Error: " + err.message;
+                resultBadge.className = "text-[10px] font-bold px-3 py-1 rounded-full uppercase bg-red-500/20 text-red-400 border border-red-500/30";
+                resultBadge.innerText = "ERROR";
+            }
+        }
+
+        function openScheduleModal() {
+            if (!document.getElementById('modalAgentSelect').value) return alert("Select an agent first.");
+            document.getElementById('scheduleModal').classList.replace('hidden', 'flex');
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('schDate').value = today;
+            generateTimeGrid(today);
+        }
+
+        function closeScheduleModal() { document.getElementById('scheduleModal').classList.replace('flex', 'hidden'); }
+
+        function generateTimeGrid(date) {
+            const container = document.getElementById('timeGrid');
+            container.innerHTML = '';
+            for (let hour = 0; hour < 24; hour++) {
+                for (let min = 0; min < 60; min += 5) {
+                    const timeStr = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+                    const isReserved = existingSchedules.some(s => s.date === date && s.time === timeStr);
+                    const btn = document.createElement('button');
+                    btn.className = `p-2 text-[10px] font-bold rounded-lg transition-all ${isReserved ? 'bg-red-500/20 text-red-500 border border-red-500/30 cursor-not-allowed' : 'bg-slate-900 border border-white/5 text-slate-400 hover:bg-blue-600 hover:text-white'}`;
+                    btn.innerText = timeStr;
+                    if (!isReserved) {
+                        btn.onclick = () => {
+                            document.querySelectorAll('#timeGrid button').forEach(b => b.classList.remove('ring-2', 'ring-blue-500'));
+                            btn.classList.add('ring-2', 'ring-blue-500');
+                            btn.dataset.selected = "true";
+                        };
+                    }
+                    container.appendChild(btn);
+                }
+            }
+        }
+
+        document.getElementById('schDate').onchange = (e) => generateTimeGrid(e.target.value);
+
+        async function confirmSchedule() {
+            const date = document.getElementById('schDate').value;
+            const selectedTimeBtn = document.querySelector('#timeGrid button[data-selected="true"]');
+            if (!selectedTimeBtn) return alert("Please select a time slot.");
+            const time = selectedTimeBtn.innerText;
+            const hostname = document.getElementById('modalAgentSelect').value;
+            const res = await fetch('/scheduling', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    'task_type': 'emulation',
+                    'target_hostname': hostname,
+                    'ttp_id': currentTTP.id,
+                    'test_guid': selectedTest.guid,
+                    'run_date': date,
+                    'run_time': time
+                })
+            });
+            if (res.ok) { alert("Task scheduled successfully!"); location.reload(); }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('nav a');
+            navLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if (!href) return;
+                let isActive = (href === '/' && currentPath === '/') || (href !== '/' && currentPath.startsWith(href));
+                if (isActive) {
+                    link.classList.remove('text-slate-400');
+                    link.classList.add('text-blue-400');
+                    link.style.textShadow = '0 0 15px rgba(56, 189, 248, 0.8)';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
